@@ -401,6 +401,6 @@ async function main() {
 
 main().catch((err) => {
   const m = document.querySelector("main");
-  const p = document.createElement("p"); p.textContent = `Sorry, the page could not load: ${err instanceof Error ? err.message : String(err)}`;
+  const p = document.createElement("p"); p.textContent = `Sorry, the page could not load: ${err instanceof Error ? err.message : String(err)}. Try a hard refresh (Cmd+Shift+R, or Ctrl+Shift+R on Windows).`;
   m?.prepend(p); console.error(err);
 });

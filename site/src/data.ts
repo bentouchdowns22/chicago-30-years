@@ -56,7 +56,8 @@ export interface Data {
 
 const BASE = import.meta.env.BASE_URL;
 async function getJson<T>(file: string): Promise<T> {
-  const res = await fetch(`${BASE}data/${file}`);
+  // "no-cache" = always check with the server first (cheap), so an update never mixes new code with old data
+  const res = await fetch(`${BASE}data/${file}`, { cache: "no-cache" });
   if (!res.ok) throw new Error(`Could not load ${file} (${res.status})`);
   return res.json() as Promise<T>;
 }
