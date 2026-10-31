@@ -211,7 +211,7 @@ def build_analysis(df, wx, years):
     warm = [p["typical"] for p in fit if p["noon_temp"] >= 70]
     cool = [p["typical"] for p in fit if p["noon_temp"] <= 50]
     slowest = sorted(fit, key=lambda p: -p["typical"])[:5]
-    weather = {"points": pts, "n": len(fit), "r": round(r, 3), "r_squared": round(r * r, 3),
+    weather = {"points": pts, "n": len(fit), "r": round(r, 5), "r_squared": round(r * r, 5),
                "slope_seconds_per_degree": round(float(slope), 2), "intercept_seconds": round(float(intercept), 1),
                "warm_days": {"rule": "noon temperature at or above 70", "n": len(warm), "average_typical": round(float(np.mean(warm)))},
                "cool_days": {"rule": "noon temperature at or below 50", "n": len(cool), "average_typical": round(float(np.mean(cool)))},
