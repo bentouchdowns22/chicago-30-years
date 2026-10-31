@@ -161,3 +161,31 @@ The 2017 spike in slow finishers and the mid-period slowdown in median finish ti
 - 2020 appears in `years.json` as `race_held: false`. The 2018-2024 qualifying label carries `assumed_mapping: true` and an assumption note inside `qualifying.json`.
 - Quantiles are left null for groups under 30 finishers (37 of 567 cells; all in the 70+ and, in the 1990s, women 60-69 groups).
 - Finishers beyond the 7-hour axis cap are kept in every statistic and counted in `beyond_cap` (6,868 in total; 0 in 1996, 3 in 2007, up to 959 in 2017).
+
+## Investigation: the notch in 2022 finish times (men, about 4:12-4:15)
+
+**What we saw.** In the 2022 distribution, men's finishers drop to almost nothing for about three minutes: per-minute counts around 4:00-4:30 run about 100-140 (4:12 has 6, 4:13 has 0, 4:14 has 0, 4:15 has 29). Women's 2022 results have a matching hole later (the 4:30-4:40 stretch has about 676 women, against 1,000-1,200 in neighboring stretches).
+
+**What we checked.**
+- **Raw vs cleaned:** identical for 2021 and 2022 by gender (the cleaning step did not create the notch).
+- **Neighboring years:** 2021 and 2023 are smooth through the same minutes, and 2021 has only 35 missing place numbers (2023: 233). The notch is only in 2022; 2021 has no such notch.
+- **Place numbers:** finishers are numbered in time order, so a gap in place numbers shows where in the clock results are missing. 2022 has 3,102 missing place numbers, and they fall in four solid blocks of finish time, not scattered: about 3:07-3:23 (roughly 1,000), 4:12-4:15 (about 440), 4:34-4:38 (about 530) and 5:22-5:28 (about 540). The 4:12-4:15 block matches the men's hole, and the 4:34-4:38 block matches the women's.
+- **Effect on the typical time:** 2022's typical finish time is 4:21:46 from the rows present and 4:21:44 if estimated from place numbers, so the gaps barely move it.
+
+**Conclusion (confidence: high that this is missing results, not a real feature of the race).** The notch is a gap in the source data; whole stretches of the clock are absent. The cause is unknown (the data cannot say). The main page does not explain it; it only says some 2022 results are missing.
+
+## Figures used for the story page
+
+| Figure | Value |
+|---|---|
+| Typical finish time, 1996 | 4:06:39 (shown as about 4:07) |
+| Typical finish time, 2023 | 4:11:41 (shown as about 4:12) |
+| Typical finish time, 2008-2018 | from 4:23 (2009) to 4:44 (2008); 2007 was 4:55 |
+| Women's share of finishers, 1996 | 31.3% |
+| Women's share of finishers, 2023 | 46.7% |
+| Women's share, highest | 48.5% in 2017 |
+| Women's share, 2007 | 39.9% (2006: 43.8%, 2008: 43.6%) |
+| 2007 finishers | 25,521 in the file; the page says "about 25,000". The project owner supplied a report citing race officials that gives 24,933; I do not have a link for it, so it is not cited on the page. |
+| Finishers past 7:00, 2005-2009 | 129, 171, 3, 296, 145 |
+
+"Share of finishers" means women among those who finished, not among those who entered. 2022 is missing about 8% of results, which can nudge shares for that year.
