@@ -129,6 +129,20 @@ def _():
     assert not st["2014"]["assumed_mapping"] and not st["2025"]["assumed_mapping"]
 
 
+@check("story numbers on the page match the data (typical time, women's share, 2007, 2017)")
+def _():
+    q = {(r["year"], r["gender"]): r for r in load("quantiles.json")["rows"] if r["age_group"] == "all"}
+    assert round(q[(1996, "all")]["p50"] / 60) == 247 and round(q[(2023, "all")]["p50"] / 60) == 252  # 4:07 and 4:12
+    share = {y["year"]: y["women"] / y["finishers"] for y in held}
+    assert round(share[1996] * 100) == 31 and round(share[2023] * 100) == 47
+    assert max(share, key=share.get) == 2017 and round(share[2017] * 100, 1) == 48.5
+    assert share[2007] < share[2006] and share[2007] < share[2008] and round(share[2007] * 100, 1) == 39.9
+    by = {y["year"]: y for y in held}
+    assert by[2007]["finishers"] == 25521 and round(q[(2007, "all")]["p50"] / 60) == 295
+    mid = [q[(yr, "all")]["p50"] / 60 for yr in range(2008, 2019)]
+    assert round(min(mid)) == 263 and round(max(mid)) == 284  # 4:23 to 4:44
+
+
 @check("total size of committed data files is under 5 MB")
 def _():
     total = sum(p.stat().st_size for p in SITE_DATA.rglob("*") if p.is_file())
