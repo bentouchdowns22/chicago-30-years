@@ -166,8 +166,7 @@ venv.bak/
 # Rope project settings
 .ropeproject
 
-# mkdocs/Zensical documentation
-/site
+# mkdocs/Zensical documentation (removed: our website lives in site/)
 
 # mypy
 .mypy_cache/
@@ -218,3 +217,17 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# --- Project-specific ---
+# Raw and intermediate data are never committed (re-download with scripts/download_data.py)
+data/raw/*
+data/processed/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+
+# Frontend
+node_modules/
+site/dist/
+
+# macOS
+.DS_Store

@@ -1,0 +1,4 @@
+# Data pipeline dependencies (Python 3.11+)
+kaggle>=1.6
+pandas>=2.2
+pyarrow>=15
