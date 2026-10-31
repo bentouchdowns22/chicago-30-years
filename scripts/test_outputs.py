@@ -185,6 +185,20 @@ def _():
     assert r["minute_3_59"] == 7993 and r["minute_4_00"] == 5905 and round(r["drop_share"], 2) == 0.26
 
 
+@check("analysis: 3:58 is the most common finish minute; the edge is clear at 4:00 and 5:00, weak at 3:00, absent at 3:30")
+def _():
+    import statistics
+    r = analysis()["round_numbers"]
+    assert r["most_common_minute"] == {"minute": 238, "count": 8093, "label": "3:58"}
+    assert round(r["share_under_4h"]["pooled"] * 100) == 32
+    assert r["share_under_4h"]["lowest_year"][0] == 2007 and r["share_under_4h"]["highest_year"][0] == 1997
+    ra = {k: list(v.values()) for k, v in r["before_after_ratio"].items()}
+    assert all(x > 1 for x in ra["4"]) and all(x > 1 for x in ra["5"])
+    assert sum(x > 1 for x in ra["3"]) == 23 and len(ra["3"]) == 27
+    assert 0.95 <= statistics.median(ra["3.5"]) <= 1.05
+    assert r["pace_for_4h"] == {"per_mile": "9:09", "per_km": "5:41"}
+
+
 @check("analysis: age mix (50+ 9% -> 23%, under 30 29% -> 18%) and 1996-age-mix typical time about 4:09 in 2023")
 def _():
     a = analysis()["age"]

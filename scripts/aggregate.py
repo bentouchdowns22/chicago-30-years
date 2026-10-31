@@ -222,13 +222,22 @@ def build_analysis(df, wx, years):
     def ratio(y, t):
         s = df[df.year == y].secs
         return float(((s >= t - 300) & (s < t)).sum()) / max(1, int(((s >= t) & (s < t + 300)).sum()))
-    ratios = {str(h): {y: round(ratio(y, h * 3600), 3) for y in held} for h in (4, 5)}
+    ratios = {str(h): {y: round(ratio(y, h * 3600), 3) for y in held} for h in (3, 3.5, 4, 5)}
     s_all = df.secs
     start_min = 225  # 3:45
     pooled = [int(((s_all >= m * 60) & (s_all < (m + 1) * 60)).sum()) for m in range(start_min, start_min + 31)]
     c359, c400 = pooled[239 - start_min], pooled[240 - start_min]
+    every_minute = np.bincount((s_all // 60).to_numpy().astype(int))
+    top_minute = int(every_minute.argmax())
+    share_under_4h = (s_all < 4 * 3600).groupby(df.year).mean()
     round_numbers = {"before_after_ratio": ratios, "pooled_start_minute": start_min, "pooled_counts_per_minute": pooled,
                      "minute_3_59": c359, "minute_4_00": c400, "drop_share": round(1 - c400 / c359, 3),
+                     "most_common_minute": {"minute": top_minute, "count": int(every_minute[top_minute]),
+                                            "label": f"{top_minute // 60}:{top_minute % 60:02d}"},
+                     "share_under_4h": {"pooled": round(float((s_all < 4 * 3600).mean()), 4),
+                                        "lowest_year": [int(share_under_4h.idxmin()), round(float(share_under_4h.min()), 4)],
+                                        "highest_year": [int(share_under_4h.idxmax()), round(float(share_under_4h.max()), 4)]},
+                     "pace_for_4h": {"per_mile": "9:09", "per_km": "5:41"},
                      "note": "Ratio = finishers in the 5 minutes before the landmark / finishers in the 5 minutes after."}
 
     # --- age: mix over time, and typical time with the 1996 age mix held fixed (ignores gender)

@@ -205,3 +205,11 @@ Computed in `scripts/aggregate.py` into `site/public/data/analysis.json` and che
 ### 1996 is also partial
 
 1996's place numbers run to 9,194 but the file has 8,194 rows, so about 11% of results are missing (1,000 place numbers). The typical time is unaffected: 4:06:39 from the rows present and 4:06:39 from the middle place number. 1996 is now flagged like 2022 (partial data, excluded from finisher-count charts) and carries the on-chart note "1996: about 11% of results are missing."
+
+### The 4:00 edge, in more detail
+
+- Most common finish minute across all years: **3:58** (8,093 finishers), just ahead of 3:59 (7,993).
+- Share of finishers under 4:00:00: 32% pooled over all years (14% in 2007 to 45% in 1997).
+- Ratio of finishers in the 5 minutes before vs after a round number, by year (27 race years): at 4:00 the median is 1.34 and every year is above 1; at 5:00 the median is 1.28 and every year is above 1; at 3:00 the median is 1.10 and 23 of 27 years are above 1; at 3:30 the median is 1.00 and the ratio is above 1 in only 16 of 27 years (no consistent edge).
+- Pace for a 4:00:00 marathon: 9:09 per mile, 5:41 per kilometer. (A draft note gave 9:06 and 5:39, which is the pace for about 3:58.)
+- The explanation on the page (round numbers act as goals; loss aversion) comes from published research, not from this dataset: Allen, Dechow, Pope and Wu, "Reference-Dependent Preferences: Evidence from Marathon Runners", Management Science (2017); free working-paper version at https://www.nber.org/papers/w20343 (about 9.5 million finishing times). The data here shows the pattern; it cannot show what runners were thinking.
