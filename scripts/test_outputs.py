@@ -66,7 +66,7 @@ def _():
 def _():
     by = {y["year"]: y for y in years}
     assert by[PARTIAL_YEAR]["partial_data"] and not by[PARTIAL_YEAR]["show_in_count_charts"]
-    assert by[NOT_COMPARABLE_YEAR]["not_comparable"] and len(by[NOT_COMPARABLE_YEAR]["sources"]) == 2
+    assert by[NOT_COMPARABLE_YEAR]["not_comparable"] and len(by[NOT_COMPARABLE_YEAR]["sources"]) == 4
     assert sum(not y["show_in_count_charts"] for y in held) == 1
 
 

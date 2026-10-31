@@ -135,11 +135,23 @@ Because ages are 5-year bands, the brief's example groups can be built exactly b
 
 ### 2007 sources and temperature notes
 
-- Sources supplied by the project owner (I have not independently opened them):
-  - <https://www.npr.org/2007/10/08/15091688/heat-mars-weekend-marathons-two-die>
-  - <https://www.wbez.org/2007/10/07/heat-shuts-down-chicago-marathon-1-man-dead-nearly-200-hospitalized>
-- Charts use the weather file's values for every year, so all years come from one source. For 2007 that file gives 71.1 F at 6 AM, 75.0 F at 9 AM and 84.0 F at noon.
-- Annotation text says reported highs were in the upper 80s F. News reports differ from each other by a degree or so, and the file's 84 F is a single noon reading, not the day's high, so the two figures are not the same measurement.
+I opened all four sources and checked what each one says (checked 2026-10-31):
+
+| Source | What it supports |
+|---|---|
+| [NPR](https://www.npr.org/2007/10/08/15091688/heat-mars-weekend-marathons-two-die) | "Record-breaking hot weather forced a halt to the Chicago Marathon." The previous marathon record was 84 F (1979), broken before 10 AM; by 11:30 officials declared the race over. No exact 2007 temperature. |
+| [WBEZ](https://www.wbez.org/2007/10/07/heat-shuts-down-chicago-marathon-1-man-dead-nearly-200-hospitalized) | Race "shut down early" because of intense heat; temperatures "pushed into the high 80's", breaking the 84 F record. No exact figure. |
+| [The Weather Network](https://www.theweathernetwork.com/en/news/weather/severe/this-day-in-weather-history-october-7-2007-deadly-hot-chicago-marathon-2) | Heat reached 31.1 C (about 88 F; the Fahrenheit value is a conversion). Called the hottest Oct. 7 in Chicago history (a record for that date). Race cancelled about 3.5 hours after the start. |
+| [CBS Chicago](https://www.cbsnews.com/amp/chicago/news/chicago-marathon-organizers-preparing-for-warm-weather) | 2007 high of 87 F; organizers cancelled the race mid-race. |
+
+- Annotation wording used on the site: race halted mid-course because of record heat; reported highs in the upper 80s F. Nothing beyond what these sources state (for example, no cause-of-death or hospitalization numbers are used, since the sources differ).
+- The sources differ by a degree or so (87 F to about 88 F), and none gives an official day's high measured the same way as the weather file.
+- Charts use the weather file's values for every year, so all years come from one source. For 2007 that file gives 71.1 F at 6 AM, 75.0 F at 9 AM and 84.0 F at noon. The 84 F is a single noon reading, not the day's high.
+- One summary of the CBS article mentioned a record "for October 11"; the race was on October 7, so that detail is not used.
+
+### Wording rule for site text
+
+The 2017 spike in slow finishers and the mid-period slowdown in median finish time are described only as what the data shows. The site does not explain their causes.
 
 ## Milestone 2 outputs
 

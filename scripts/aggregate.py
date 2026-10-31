@@ -70,11 +70,14 @@ def main():
         if y == NOT_COMPARABLE_YEAR:
             entry["not_comparable"] = True
             entry["note"] = ("The race was halted mid-course because of record heat; reported highs were in the "
-                             "upper 80s F. Times are not directly comparable to other years. The weather values "
-                             "shown here come from the same source as every other year (noon reading in the file: 84 F).")
+                             "upper 80s F. Times are not directly comparable to other years. The chart's weather "
+                             "value comes from the same source as every other year (84 F at noon in that file, a "
+                             "single reading).")
             entry["sources"] = [
                 "https://www.npr.org/2007/10/08/15091688/heat-mars-weekend-marathons-two-die",
-                "https://www.wbez.org/2007/10/07/heat-shuts-down-chicago-marathon-1-man-dead-nearly-200-hospitalized"]
+                "https://www.wbez.org/2007/10/07/heat-shuts-down-chicago-marathon-1-man-dead-nearly-200-hospitalized",
+                "https://www.theweathernetwork.com/en/news/weather/severe/this-day-in-weather-history-october-7-2007-deadly-hot-chicago-marathon-2",
+                "https://www.cbsnews.com/amp/chicago/news/chicago-marathon-organizers-preparing-for-warm-weather"]
         yrs.append(entry)
     dump("years.json", {"axis_cap_seconds": CAP_SECONDS, "years": yrs})
 
