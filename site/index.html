@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Thirty Years of Chicago</title>
+  <meta name="description" content="How Chicago Marathon finish times changed, year by year, 1996 to 2023." />
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <main>
+    <header>
+      <p class="kicker">The Chicago Marathon, 1996&ndash;2023</p>
+      <h1>Thirty Years of Chicago</h1>
+      <p class="dek">Each hill below is one year&rsquo;s race. The higher the hill, the more runners finished in that
+        2-minute stretch of the clock. Press play, or drag the slider, to move through the years.</p>
+    </header>
+
+    <section class="controls" aria-label="Chart controls">
+      <button id="play" type="button" class="btn" aria-label="Play through the years">&#9654; Play</button>
+      <div class="slider">
+        <label for="year">Year</label>
+        <input id="year" type="range" min="0" max="27" step="1" value="27" />
+        <output id="year-out" for="year">2023</output>
+      </div>
+      <div class="seg" role="group" aria-label="Who is shown">
+        <button type="button" class="seg-btn" data-group="all" aria-pressed="true">All runners</button>
+        <button type="button" class="seg-btn" data-group="F" aria-pressed="false">Women</button>
+        <button type="button" class="seg-btn" data-group="M" aria-pressed="false">Men</button>
+      </div>
+    </section>
+
+    <section id="readout" class="readout" aria-label="Selected year"></section>
+
+    <div id="chart-wrap" class="chart-wrap">
+      <svg id="chart" role="img" aria-labelledby="chart-title chart-desc"></svg>
+      <div id="tip" class="tip" hidden></div>
+    </div>
+
+    <ul class="footnotes">
+      <li><span class="mark">&dagger;</span> 2007: the race was halted mid-course because of record heat; times are not directly comparable to other years.</li>
+      <li><span class="mark">&Dagger;</span> 2022: partial data, about 8% of finishers missing. Shown here, but left out of any chart of finisher counts.</li>
+      <li>2020: no race. The dotted line joins each year&rsquo;s median finish time.</li>
+      <li>The clock axis stops at 7:00. Finishers beyond it are still counted in every statistic; the number is shown for the selected year.</li>
+    </ul>
+
+    <p id="summary" class="summary"></p>
+
+    <details class="table-view">
+      <summary>View the numbers as a table</summary>
+      <div class="table-scroll"><table id="table"></table></div>
+    </details>
+
+    <footer>
+      <p>Data: <a href="https://www.kaggle.com/datasets/runningwithrock/chicago-marathon-results">Chicago Marathon Results &ndash; 1996 to 2023</a>
+        by runningwithrock on Kaggle (MIT license). Results come from chicagomarathon.com; weather from
+        <a href="https://weatherspark.com/">Weather Spark</a>. Weather units are assumed to be &deg;F (the source file does not state them).
+        Curves are lightly smoothed for display.</p>
+    </footer>
+  </main>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
