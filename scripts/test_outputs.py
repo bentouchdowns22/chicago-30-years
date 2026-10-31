@@ -27,6 +27,10 @@ def load(name):
     return json.loads((SITE_DATA / name).read_text())
 
 
+def analysis():
+    return load("analysis.json")
+
+
 df = pd.read_parquet(PROCESSED / "results_clean.parquet")
 years = load("years.json")["years"]
 held = [y for y in years if y["race_held"]]
@@ -144,8 +148,12 @@ def _():
     assert round(min(mid)) == 263 and round(max(mid)) == 284  # 4:23 to 4:44
 
 
-def analysis():
-    return load("analysis.json")
+@check("headline claims hold: typical time moved under 6 minutes while the middle half widened by over 40%")
+def _():
+    q = {r["year"]: r for r in load("quantiles.json")["rows"] if r["age_group"] == "all" and r["gender"] == "all"}
+    assert abs(q[2023]["p50"] - q[1996]["p50"]) < 6 * 60
+    sp = {r["year"]: r for r in analysis()["spread"]}
+    assert sp[2023]["middle_half"] / sp[1996]["middle_half"] > 1.4
 
 
 @check("analysis: the field spread out (middle half 55 -> 83 minutes; tails move outward)")
