@@ -19,7 +19,7 @@ export function mountStacked(box: HTMLElement, data: Data, initial: number): Sta
     const pitch = W < 560 ? 15 : 18, ridgeH = pitch * 3.6, ml = W < 560 ? 44 : 56, mr = 10, head = 30;
     const x = d3.scaleLinear().domain([T0, CAP]).range([ml, W - mr]);
     const base = years.map((_, i) => head + ridgeH + i * pitch);
-    const last = base[nRows - 1], H = last + 40;
+    const last = base[nRows - 1], H = last + 58;
     svg.setAttribute("viewBox", `0 0 ${W} ${H}`); svg.setAttribute("width", String(W)); svg.setAttribute("height", String(H));
     svg.replaceChildren();
     const k = ridgeH / gmax * 0.95;
@@ -31,7 +31,7 @@ export function mountStacked(box: HTMLElement, data: Data, initial: number): Sta
       el("line", { x1: x(h * 3600), x2: x(h * 3600), y1: head, y2: last + 6, stroke: "var(--grid)" }, g0);
       text(g0, `${h}:00`, { x: x(h * 3600), y: last + 22, "text-anchor": "middle", "font-size": 12 });
     }
-    text(g0, "Finish time (hours:minutes)", { x: (ml + W - mr) / 2, y: H - 4, "text-anchor": "middle", "font-size": 12 });
+    text(g0, "Finish time (hours:minutes)", { x: (ml + W - mr) / 2, y: H - 3, "text-anchor": "middle", "font-size": 12 });
     const gR = el("g", {}, svg);
     years.forEach((y, i) => {
       if (!y.race_held) { el("line", { x1: ml, x2: W - mr, y1: base[i], y2: base[i], stroke: "var(--ink-3)", "stroke-dasharray": "2 4" }, gR); return; }
@@ -82,7 +82,7 @@ export function mountStacked(box: HTMLElement, data: Data, initial: number): Sta
     });
     const m0 = data.typical(years[0].year), m1 = data.typical(years[nRows - 1].year);
     if (m0 !== null) { const t = text(svg, `1996: about ${fmtHMRound(m0)}`, { x: Math.min(Math.max(x(m0), ml + 60), W - mr - 60), y: head - 14, "text-anchor": "middle", "font-size": 12, "font-weight": 700 }, { ink: true, halo: true }); haloStyle(t); }
-    if (m1 !== null) text(svg, `2023: about ${fmtHMRound(m1)}`, { x: Math.min(Math.max(x(m1), ml + 60), W - mr - 60), y: last + 14, "text-anchor": "middle", "font-size": 12, "font-weight": 700 }, { ink: true, halo: true });
+    if (m1 !== null) text(svg, `2023: about ${fmtHMRound(m1)}`, { x: Math.min(Math.max(x(m1), ml + 60), W - mr - 60), y: last + 40, "text-anchor": "middle", "font-size": 12, "font-weight": 700 }, { ink: true, halo: true });
   }
   return { setSelected(i) { sel = i; if (box.clientWidth) render(); }, render };
 }
