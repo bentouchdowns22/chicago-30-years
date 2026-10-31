@@ -4,46 +4,55 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Thirty Years of Chicago</title>
-  <meta name="description" content="How long Chicago Marathon runners took to finish, year by year, 1996 to 2023." />
+  <meta name="description" content="The typical Chicago Marathon finish time barely changed between 1996 and 2023, but women went from 31% of finishers to 47%." />
   <link rel="stylesheet" href="/src/style.css" />
 </head>
 <body>
   <main>
     <header>
-      <p class="kicker">The Chicago Marathon, 1996&ndash;2023</p>
-      <h1>Thirty Years of Chicago</h1>
-      <p class="dek">This page shows how long Chicago Marathon runners took to finish each year, from 1996 to 2023
-        &mdash; follow the dotted line to track the typical runner.</p>
+      <p class="kicker">Thirty Years of Chicago &middot; Chicago Marathon results, 1996&ndash;2023</p>
+      <h1>
+        <span id="head-a">The typical Chicago Marathon finish time barely changed between 1996 and 2023: about 4:07, then 4:12.</span>
+        <span id="head-b" class="head-b">But the field did: women went from 31% of finishers to 47%.</span>
+      </h1>
     </header>
 
-    <section class="controls" aria-label="Controls">
-      <button id="play" type="button" class="btn" aria-label="Play through the years">&#9654; Play</button>
-      <div class="slider">
-        <label for="year">Year</label>
-        <input id="year" type="range" min="0" max="27" step="1" value="27" />
-        <output id="year-out" for="year">2023</output>
-      </div>
-      <div class="show">
-        <span id="show-label" class="show-label">Show:</span>
-        <div class="seg" role="group" aria-labelledby="show-label">
-          <button type="button" class="seg-btn" data-group="all" aria-pressed="true">Everyone</button>
-          <button type="button" class="seg-btn" data-group="F" aria-pressed="false">Women</button>
-          <button type="button" class="seg-btn" data-group="M" aria-pressed="false">Men</button>
+    <section class="hero" aria-label="Finish times, one year at a time">
+      <div class="controls">
+        <button id="play" type="button" class="btn" aria-label="Play through the years">&#9654; Play</button>
+        <div class="slider">
+          <label for="year">Year</label>
+          <input id="year" type="range" min="0" max="27" step="1" value="27" />
+          <output id="year-out" for="year" class="sr-only">2023</output>
         </div>
       </div>
+      <div id="hero-wrap" class="chart-wrap"><svg id="hero" role="img" aria-labelledby="hero-title"></svg></div>
+      <p class="caption">Right = slower finish; taller = more runners finishing then. The faint hill is 1996. The chart stops at 7:00.</p>
+      <p id="status" class="sr-only" aria-live="polite"></p>
+      <h2 class="small-h">Typical finish time, year by year</h2>
+      <div id="trend-wrap" class="chart-wrap"><svg id="trend" role="img" aria-label="Typical finish time for each year from 1996 to 2023"></svg></div>
     </section>
-    <p class="hint">Press Play to watch the years go by, or drag the slider. You can also tap any row of the chart.</p>
 
-    <section id="readout" class="readout" aria-label="Selected year"></section>
+    <section class="block" aria-labelledby="women-h">
+      <h2 id="women-h">Women&rsquo;s share of finishers</h2>
+      <div id="women-wrap" class="chart-wrap"><svg id="women" role="img" aria-label="Share of finishers who were women, each year from 1996 to 2023"></svg></div>
+      <p class="caption">Share of finishers (not entrants) who were women. Hollow dot: 2022 is missing about 8% of results.</p>
+    </section>
 
-    <p class="howto"><strong>How to read this:</strong> each hill is one year. Right = slower, taller = more runners.
-      Dotted line = the typical runner. Blue = your pick.</p>
+    <section class="block" aria-labelledby="y07-h">
+      <h2 id="y07-h">2007: a race stopped by heat</h2>
+      <div class="pair">
+        <div><h3>Finishers</h3><div id="b-count-wrap" class="chart-wrap"><svg id="b-count" role="img" aria-label="Finishers each year, 2005 to 2009"></svg></div></div>
+        <div><h3>Typical finish time</h3><div id="b-time-wrap" class="chart-wrap"><svg id="b-time" role="img" aria-label="Typical finish time each year, 2005 to 2009"></svg></div></div>
+      </div>
+      <p id="y07-caption" class="caption wide"></p>
+    </section>
 
-    <div id="chart-wrap" class="chart-wrap">
-      <svg id="chart" role="img" aria-labelledby="chart-title chart-desc"></svg>
-      <div id="tip" class="tip" hidden></div>
-    </div>
-    <p id="cap-note" class="cap-note"></p>
+    <details id="stack-box" class="more">
+      <summary>See every year at once</summary>
+      <p class="caption">One small hill per year, oldest at the top. The dotted line follows the typical runner. The year you picked is blue.</p>
+      <div id="stacked" class="chart-wrap"></div>
+    </details>
 
     <details class="more">
       <summary>More details</summary>
@@ -54,15 +63,19 @@
         <h2>The numbers</h2>
         <div class="table-scroll"><table id="table"></table></div>
 
-        <h2>Notes on three special years</h2>
+        <h2>Notes on special years</h2>
         <ul id="special"></ul>
+        <ul>
+          <li><strong>2022, gaps in the results.</strong> Besides being missing about 8% of finishers overall, 2022 has four stretches of the clock where results are absent (roughly 3:07&ndash;3:23, 4:12&ndash;4:15, 4:34&ndash;4:38 and 5:22&ndash;5:28). They show up as notches in that year&rsquo;s hill. The data can&rsquo;t say why. They barely move the typical time (4:21:46 from the results present; 4:21:44 if estimated from place numbers).</li>
+          <li><strong>2007, number of finishers.</strong> The file lists 25,521. A report citing race officials gives 24,933, which is why the page says &ldquo;about 25,000&rdquo;.</li>
+          <li><strong>Finishers past 7:00</strong> (not drawn; still counted in every number): <span id="past7"></span></li>
+        </ul>
 
         <h2>About the data</h2>
         <ul>
-          <li>Only runners who finished are included. Ages are not used on this page.</li>
-          <li>The chart stops at 7:00. Runners who finished later are still counted in every number; the count for the selected year is shown under the chart.</li>
-          <li>The hills are lightly smoothed so they are easier to read. The numbers in the table are not smoothed.</li>
-          <li>Temperatures come from Weather Spark. The source does not state units, so they are assumed to be &deg;F.</li>
+          <li>Only runners who finished are included.</li>
+          <li>The hills are lightly smoothed so they are easier to read. The table is not smoothed.</li>
+          <li>Temperatures in the table come from Weather Spark. The source does not state units, so they are assumed to be &deg;F.</li>
           <li>Results come from chicagomarathon.com. The collection used here is
             <a href="https://www.kaggle.com/datasets/runningwithrock/chicago-marathon-results">Chicago Marathon Results &ndash; 1996 to 2023</a>
             by runningwithrock on Kaggle (MIT license).</li>
