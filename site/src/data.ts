@@ -33,6 +33,9 @@ export interface Analysis {
   round_numbers: {
     before_after_ratio: Record<string, Record<string, number>>;
     pooled_start_minute: number; pooled_counts_per_minute: number[]; minute_3_59: number; minute_4_00: number; drop_share: number;
+    most_common_minute: { minute: number; count: number; label: string };
+    share_under_4h: { pooled: number; lowest_year: [number, number]; highest_year: [number, number] };
+    pace_for_4h: { per_mile: string; per_km: string };
   };
   age: {
     mix: { year: number; u30: number; "30-39": number; "40-49": number; "50+": number }[];

@@ -226,3 +226,31 @@ export function buildAge(data: Data, ids: { svg: string; wrap: string }, pick: P
   clickPicks(svg, W, x, data, pick);
   return { update(sel) { const e = data.years[sel]; vline.setAttribute("opacity", e.race_held ? "0.6" : "0"); vline.setAttribute("x1", String(x(e.year))); vline.setAttribute("x2", String(x(e.year))); } };
 }
+
+// ============================================================================================
+// Round numbers compared: how much finishing bunches up just before each
+// ============================================================================================
+export function buildRoundNumbers(data: Data, ids: { svg: string; wrap: string }): void {
+  const svg = $svg(ids.svg), W = widthOf(ids.wrap), phone = W < 560, H = phone ? 216 : 226;
+  const ml = 46, mr = phone ? 102 : 110, mt = 24, mb = 46;
+  frame(svg, W, H);
+  const ra = data.analysis.round_numbers.before_after_ratio;
+  const rows = [["3", "3:00"], ["3.5", "3:30"], ["4", "4:00"], ["5", "5:00"]] as const;
+  const x = d3.scaleLinear().domain([0.7, 1.8]).range([ml, W - mr]);
+  const slot = (H - mt - mb) / rows.length;
+  for (const t of [0.8, 1, 1.2, 1.4, 1.6]) {
+    el("line", { x1: x(t), x2: x(t), y1: mt - 6, y2: H - mb, stroke: t === 1 ? css("ink") : css("grid"), "stroke-dasharray": t === 1 ? "3 3" : "none" }, svg);
+    text(svg, t.toFixed(1), { x: x(t), y: H - mb + 16, "text-anchor": "middle", "font-size": 12, "font-weight": t === 1 ? 700 : 400 }, { ink: t === 1 });
+  }
+  text(svg, "no edge", { x: x(1), y: mt - 10, "text-anchor": "middle", "font-size": 12 });
+  text(svg, "more runners just before \u2192", { x: W - mr, y: H - 6, "text-anchor": "end", "font-size": 12 });
+  rows.forEach(([key, label], i) => {
+    const v = Object.values(ra[key]), cy = mt + slot * (i + 0.5);
+    const sorted = [...v].sort((p, q) => p - q), med = sorted[Math.floor(sorted.length / 2)];
+    const above = v.filter((q) => q > 1).length, strong = above === v.length;
+    text(svg, label, { x: ml - 8, y: cy + 4, "text-anchor": "end", "font-size": 14, "font-weight": 700 }, { ink: true });
+    el("line", { x1: x(Math.min(...v)), x2: x(Math.max(...v)), y1: cy, y2: cy, stroke: strong ? css("accent") : css("ink-3"), "stroke-width": 6, "stroke-linecap": "round", opacity: 0.35 }, svg);
+    el("circle", { cx: x(med), cy, r: 7, fill: strong ? css("accent") : css("ink-3"), stroke: css("surface"), "stroke-width": 2 }, svg);
+    text(svg, `${above} of ${v.length} years`, { x: W - mr + 10, y: cy + 4, "font-size": phone ? 12 : 13 }, { ink: true });
+  });
+}

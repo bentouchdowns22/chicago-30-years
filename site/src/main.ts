@@ -1,7 +1,7 @@
 import * as d3 from "d3";
 import { loadData, YearEntry, el, text, smooth, css, widthOf, noteBox, lineSegments, fmtClock, fmtHMRound, pct, num } from "./data";
 import { mountStacked } from "./stacked";
-import { buildAge, buildBand, buildEdge, buildFieldSize, buildWeather, Handle } from "./charts";
+import { buildAge, buildBand, buildEdge, buildFieldSize, buildRoundNumbers, buildWeather, Handle } from "./charts";
 
 const $ = <T extends HTMLElement | SVGElement>(id: string) => document.getElementById(id) as unknown as T;
 const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -60,6 +60,35 @@ async function main() {
   $("edge-caption").textContent =
     `Each bar is one minute on the clock, adding up every year from 1996 to 2023. In the minute just before 4:00:00, ${num(rn.minute_3_59)} runners finished; in the minute just after, ${num(rn.minute_4_00)} (${Math.round(rn.drop_share * 100)}% fewer). ` +
     `In every year, more runners finished in the five minutes before 4:00 than in the five minutes after (${Math.min(...r4).toFixed(2)} to ${Math.max(...r4).toFixed(2)} times as many), and the same holds around 5:00 (${Math.min(...r5).toFixed(2)} to ${Math.max(...r5).toFixed(2)}). Finish times pile up just under round numbers.`;
+  // the 4:00 section: facts, the comparison chart, and the research behind it
+  const mc = rn.most_common_minute, u4 = rn.share_under_4h;
+  const facts: [string, string][] = [
+    [mc.label, `the most common finish minute in Chicago (${num(mc.count)} runners)`],
+    [pct(u4.pooled), `of finishers broke four hours (${pct(u4.lowest_year[1])} in ${u4.lowest_year[0]} to ${pct(u4.highest_year[1])} in ${u4.highest_year[0]})`],
+    [`${r4.filter((q) => q > 1).length} of ${r4.length}`, "years with more runners just before 4:00 than just after"],
+  ];
+  const factsEl = $<HTMLElement>("edge-facts");
+  for (const [big, small] of facts) {
+    const box = document.createElement("div");
+    const dd = document.createElement("dd"); dd.textContent = big;
+    const dt = document.createElement("dt"); dt.textContent = small;
+    box.append(dd, dt); factsEl.appendChild(box);
+  }
+  const rr = (k: string) => Object.values(rn.before_after_ratio[k]);
+  const medOf = (v: number[]) => [...v].sort((p, q) => p - q)[Math.floor(v.length / 2)];
+  const cnt = (k: string) => rr(k).filter((q) => q > 1).length;
+  $("rn-caption").textContent =
+    `Each row compares the five minutes just before a round number with the five minutes just after it. The dot is the typical year and the bar runs from the lowest year to the highest. 1.0 means no edge; 1.5 means half again as many runners just before. ` +
+    `The edge is clear at 4:00 (more runners just before in all ${rr("4").length} years) and 5:00 (all ${rr("5").length}), weaker at 3:00 (${cnt("3")} of ${rr("3").length} years), and missing at 3:30 (the typical year is ${medOf(rr("3.5")).toFixed(2)}).`;
+  const psych = $<HTMLElement>("edge-psych");
+  const para = (cls: string, ...parts: (string | Node)[]) => { const p = document.createElement("p"); if (cls) p.className = cls; p.append(...parts); psych.appendChild(p); };
+  const link = (href: string, label: string) => { const a = document.createElement("a"); a.href = href; a.target = "_blank"; a.rel = "noopener"; a.textContent = label; return a; };
+  para("", "Researchers who studied more than 9 million marathon finishing times found the same pattern as this chart: far more runners finish just before a round number than just after it (Allen, Dechow, Pope and Wu, 2017, ",
+    link("https://www.nber.org/papers/w20343", "free version"), "). Their explanation is that round numbers work as goals. A runner who is close to four hours treats 4:00 as a line to beat.");
+  para("", "The idea behind it is called loss aversion: missing a goal hurts more than reaching it feels good. Finishing in 3:59 or 4:01 is only two minutes apart, but it feels like the difference between meeting a goal and missing it, so many runners find extra effort in the last miles. That fits the drop right after 4:00 in the chart.");
+  para("", `Why four hours? It is a round number almost every runner has heard of, and the pace it takes is within reach for many recreational runners: about ${rn.pace_for_4h.per_mile} per mile (${rn.pace_for_4h.per_km} per kilometer) for the whole race. In Chicago, ${pct(u4.pooled)} of finishers broke it.`);
+  para("note", "What this data can and can\u2019t show: it shows the pattern clearly. It can\u2019t show what any runner was thinking, so the psychology comes from the research, not from this dataset.");
+
   const std23 = ag.standardized.find((r) => r.year === 2023)!;
   const gaps = Object.values(ag.typical_by_age_group_by_period).map((v) => (v["2008-2018"] - v["1996-2006"]) / 60);
   const mixOf = (year: number) => ag.mix.find((r) => r.year === year)!;
@@ -358,6 +387,7 @@ async function main() {
       buildAge(data, { svg: "age", wrap: "age-wrap" }, pick),
     );
     buildEdge(data, { svg: "edge", wrap: "edge-wrap" });
+    buildRoundNumbers(data, { svg: "rn", wrap: "rn-wrap" });
     if (stackBox.open) stacked.render();
   }
   buildAll(); renderSeasonCaption(); renderDetails(); select(sel);
