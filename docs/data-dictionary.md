@@ -189,3 +189,19 @@ The 2017 spike in slow finishers and the mid-period slowdown in median finish ti
 | Finishers past 7:00, 2005-2009 | 129, 171, 3, 296, 145 |
 
 "Share of finishers" means women among those who finished, not among those who entered. 2022 is missing about 8% of results, which can nudge shares for that year.
+
+## Analysis figures (Milestone 3 redesign)
+
+Computed in `scripts/aggregate.py` into `site/public/data/analysis.json` and checked by `scripts/test_outputs.py`.
+
+| Finding | Numbers |
+|---|---|
+| Field spread | The middle half of finishers (25th to 75th percentile) spanned 55 minutes in 1996 and 83 in 2023. The time the fastest 5% beat went from 3:05 to 2:57; the time only 5% exceeded went from 5:19 to 6:14. |
+| Temperature vs typical time | 26 years (2007 plotted but left out of the fit): r = 0.70 (r-squared 0.48), about 39 seconds slower per degree F of noon temperature. Six days with noon at or above 70 F averaged a typical 4:39; six days at or below 50 F averaged 4:19. The five slowest years after 2007 (2008, 2017, 2010, 2021, 2011) all had noon temperatures of 73 F or more. Caveats: correlation, one noon reading at one station, 26 points. |
+| Round-number edge | In every year more runners finished in the 5 minutes before 4:00:00 than in the 5 minutes after (ratio 1.17 to 1.63), and the same at 5:00 (1.14 to 1.73). Pooled over all years: 7,993 finishers in the 3:59 minute vs 5,905 in the 4:00 minute (26% fewer). |
+| Age mix | Finishers aged 50 or over: 9% (1996) to 23% (2023). Under 30: 29% to 18%. Holding the 1996 age mix fixed, 2023's typical time would be 4:09 instead of 4:12. Every age group's typical time was 12 to 17 minutes slower in 2008-2018 than in 1996-2006. Ages are 5-year bands. |
+| Dataset | 886,541 finishers (after removing 5 duplicates), 27 races (1996-2019, 2021-2023), fastest finish 2:00:35 (2023), largest field 48,155 (2023). |
+
+### 1996 is also partial
+
+1996's place numbers run to 9,194 but the file has 8,194 rows, so about 11% of results are missing (1,000 place numbers). The typical time is unaffected: 4:06:39 from the rows present and 4:06:39 from the middle place number. 1996 is now flagged like 2022 (partial data, excluded from finisher-count charts) and carries the on-chart note "1996: about 11% of results are missing."

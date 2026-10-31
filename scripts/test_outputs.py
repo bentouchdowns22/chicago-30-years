@@ -67,7 +67,8 @@ def _():
     by = {y["year"]: y for y in years}
     assert by[PARTIAL_YEAR]["partial_data"] and not by[PARTIAL_YEAR]["show_in_count_charts"]
     assert by[NOT_COMPARABLE_YEAR]["not_comparable"] and len(by[NOT_COMPARABLE_YEAR]["sources"]) == 4
-    assert sum(not y["show_in_count_charts"] for y in held) == 1
+    assert {y["year"] for y in held if not y["show_in_count_charts"]} == {1996, PARTIAL_YEAR}
+    assert by[1996]["partial_data"] and "11%" in by[1996]["short_note"]
 
 
 @check("every race year has weather")
@@ -141,6 +142,60 @@ def _():
     assert by[2007]["finishers"] == 25521 and round(q[(2007, "all")]["p50"] / 60) == 295
     mid = [q[(yr, "all")]["p50"] / 60 for yr in range(2008, 2019)]
     assert round(min(mid)) == 263 and round(max(mid)) == 284  # 4:23 to 4:44
+
+
+def analysis():
+    return load("analysis.json")
+
+
+@check("analysis: the field spread out (middle half 55 -> 83 minutes; tails move outward)")
+def _():
+    sp = {r["year"]: r for r in analysis()["spread"]}
+    assert round(sp[1996]["middle_half"] / 60) == 55 and round(sp[2023]["middle_half"] / 60) == 83
+    assert sp[2023]["p5"] < sp[1996]["p5"] and sp[2023]["p95"] > sp[1996]["p95"]
+    assert all(r["p5"] < r["p25"] < r["p50"] < r["p75"] < r["p95"] for r in sp.values())
+
+
+@check("analysis: temperature vs typical time (n=26, r about 0.70, 2007 plotted but not fitted)")
+def _():
+    w = analysis()["weather"]
+    assert w["n"] == 26 and round(w["r"], 2) == 0.70 and 0.45 < w["r_squared"] < 0.5
+    assert [p for p in w["points"] if p["year"] == 2007][0]["in_fit"] is False and sum(p["in_fit"] for p in w["points"]) == 26
+    assert round(w["slope_seconds_per_degree"]) == 39
+    assert {p["year"] for p in w["five_slowest_years_excluding_2007"]} == {2008, 2010, 2011, 2017, 2021}
+    assert all(p["noon_temp"] >= 73 for p in w["five_slowest_years_excluding_2007"])
+    assert round(w["warm_days"]["average_typical"] / 60) == 279 and round(w["cool_days"]["average_typical"] / 60) == 259
+
+
+@check("analysis: more finishers just before 4:00 and 5:00 than just after, in every year")
+def _():
+    r = analysis()["round_numbers"]
+    for h in ("4", "5"):
+        assert all(v > 1 for v in r["before_after_ratio"][h].values()), h
+    v4 = list(r["before_after_ratio"]["4"].values())
+    assert round(min(v4), 2) == 1.17 and round(max(v4), 2) == 1.63
+    assert r["minute_3_59"] == 7993 and r["minute_4_00"] == 5905 and round(r["drop_share"], 2) == 0.26
+
+
+@check("analysis: age mix (50+ 9% -> 23%, under 30 29% -> 18%) and 1996-age-mix typical time about 4:09 in 2023")
+def _():
+    a = analysis()["age"]
+    mix = {r["year"]: r for r in a["mix"]}
+    assert round(mix[1996]["50+"] * 100) == 9 and round(mix[2023]["50+"] * 100) == 23
+    assert round(mix[1996]["u30"] * 100) == 29 and round(mix[2023]["u30"] * 100) == 18
+    assert all(abs(sum(v for k, v in r.items() if k != "year") - 1) < 1e-3 for r in a["mix"])
+    s = {r["year"]: r for r in a["standardized"]}
+    assert abs(s[2023]["typical_1996_age_mix"] / 60 - 249.5) < 0.6
+    per = a["typical_by_age_group_by_period"]
+    gaps = [(v["2008-2018"] - v["1996-2006"]) / 60 for v in per.values()]
+    assert round(min(gaps)) == 12 and round(max(gaps)) == 17
+
+
+@check("analysis: dataset numbers (886,541 finishers, 27 races, fastest 2:00:35 in 2023)")
+def _():
+    d = analysis()["dataset"]
+    assert d["finishers"] == len(df) == 886541 and d["races"] == 27
+    assert d["fastest_seconds"] == 7235 and d["fastest_year"] == 2023 and d["largest_year"] == 2023
 
 
 @check("total size of committed data files is under 5 MB")

@@ -24,3 +24,5 @@ MIN_CELL = 30                   # no quantiles for groups smaller than this
 PARTIAL_YEAR = 2022             # about 8% of finishers missing
 NOT_COMPARABLE_YEAR = 2007      # race halted mid-course in extreme heat
 NO_RACE_YEAR = 2020
+ANALYSIS_PARTIAL_1996 = 1996    # about 11% of finishers missing (place numbers run past the rows)
+WEATHER_FIT_EXCLUDE = 2007      # halted race: plotted but left out of the temperature fit

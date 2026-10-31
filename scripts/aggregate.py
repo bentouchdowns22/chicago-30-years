@@ -9,12 +9,18 @@ import json
 import numpy as np
 import pandas as pd
 from common import (RAW, PROCESSED, SITE_DATA, AGE_GROUPS, CAP_SECONDS, BIN_SECONDS,
-                    FASTEST_BIN_START, MIN_CELL, PARTIAL_YEAR, NOT_COMPARABLE_YEAR, NO_RACE_YEAR)
+                    FASTEST_BIN_START, MIN_CELL, PARTIAL_YEAR, NOT_COMPARABLE_YEAR, NO_RACE_YEAR,
+                    ANALYSIS_PARTIAL_1996, WEATHER_FIT_EXCLUDE)
 
 QS = [5, 25, 50, 75, 95]
 GENDERS = ["all", "M", "F"]
 AGE_KEYS = ["all"] + [k for k, _, _ in AGE_GROUPS]
 EDGES = np.arange(FASTEST_BIN_START, CAP_SECONDS + BIN_SECONDS, BIN_SECONDS)  # 2:00:00 .. 7:00:00
+
+
+def fmt_clock(s):
+    s = round(s)
+    return f"{s // 3600}:{s % 3600 // 60:02d}:{s % 60:02d}"
 
 
 def dump(name, obj):
@@ -29,6 +35,22 @@ def subset(d, gender, age):
     if age != "all":
         d = d[d.age_group == age]
     return d
+
+
+def place_check(year):
+    """How many place numbers are missing, and does the typical time hold up if we use place numbers instead of rows?"""
+    raw = pd.read_csv(RAW / "Chicago Marathon Results.csv", encoding="utf-8-sig", usecols=["Year", "Overall", "Finish"])
+    d = raw[raw.Year == year].sort_values("Overall")
+    rows, top = len(d), int(d.Overall.max())
+    mid_row = d.iloc[(d.Overall - top / 2).abs().argsort().iloc[:1]]
+    return {"rows": rows, "max_place": top, "missing": top - rows, "missing_share": (top - rows) / top,
+            "typical_rows": float(d.Finish.median()), "typical_by_place": float(mid_row.Finish.iloc[0])}
+
+
+def weighted_median(values, weights):
+    o = np.argsort(values)
+    v, w = values[o], weights[o]
+    return float(v[np.searchsorted(np.cumsum(w) / w.sum(), 0.5)])
 
 
 def main():
@@ -65,6 +87,17 @@ def main():
             "show_in_count_charts": y != PARTIAL_YEAR,
             "note": None,
         }
+        if y == ANALYSIS_PARTIAL_1996:
+            pc = place_check(y)
+            entry["partial_data"] = True
+            entry["show_in_count_charts"] = False
+            entry["note"] = (f"Some results are missing: about {round(pc['missing_share'] * 100)}% of finishers (roughly 1 in 9) "
+                             "are not in the data, so this year's hill covers most, but not all, of the runners. "
+                             "The typical finish time is not affected.")
+            entry["short_note"] = f"1996: about {round(pc['missing_share'] * 100)}% of results are missing."
+            entry["detail_note"] = (f"Partial data: finisher place numbers run to {pc['max_place']:,} but the file has {pc['rows']:,} rows "
+                                    f"({pc['missing']:,} missing). The typical time is {fmt_clock(pc['typical_rows'])} from the rows present and "
+                                    f"{fmt_clock(pc['typical_by_place'])} using the middle place number, so the gaps do not move it.")
         if y == PARTIAL_YEAR:
             entry["partial_data"] = True
             entry["note"] = ("Some results are missing: about 8% of finishers (roughly 1 in 12) are not in the data, "
@@ -157,6 +190,70 @@ def main():
         s["times"] = [{"gender": r["Gender"], "age_group": r["Chicago Age"], "seconds": int(r[s["file_column"]])}
                       for _, r in q.iterrows()]
     dump("qualifying.json", {"unit": "seconds", "standards": standards})
+    dump("analysis.json", build_analysis(df, wx, years))
+
+
+def build_analysis(df, wx, years):
+    held = [y for y in years if y != NO_RACE_YEAR]
+    g = df.groupby("year").secs
+
+    # --- spread: how wide the field is, year by year
+    spread = [{"year": y, **{f"p{q}": round(float(np.percentile(df[df.year == y].secs, q))) for q in QS}} for y in held]
+    for r in spread:
+        r["middle_half"] = r["p75"] - r["p25"]
+
+    # --- temperature vs typical time (2007 plotted, not fitted)
+    pts = [{"year": y, "noon_temp": float(wx.loc[y, "12PM Temp"]), "typical": float(g.median()[y]), "in_fit": y != WEATHER_FIT_EXCLUDE} for y in held]
+    fit = [p for p in pts if p["in_fit"]]
+    xs, ys = np.array([p["noon_temp"] for p in fit]), np.array([p["typical"] for p in fit])
+    slope, intercept = np.polyfit(xs, ys, 1)
+    r = float(np.corrcoef(xs, ys)[0, 1])
+    warm = [p["typical"] for p in fit if p["noon_temp"] >= 70]
+    cool = [p["typical"] for p in fit if p["noon_temp"] <= 50]
+    slowest = sorted(fit, key=lambda p: -p["typical"])[:5]
+    weather = {"points": pts, "n": len(fit), "r": round(r, 3), "r_squared": round(r * r, 3),
+               "slope_seconds_per_degree": round(float(slope), 2), "intercept_seconds": round(float(intercept), 1),
+               "warm_days": {"rule": "noon temperature at or above 70", "n": len(warm), "average_typical": round(float(np.mean(warm)))},
+               "cool_days": {"rule": "noon temperature at or below 50", "n": len(cool), "average_typical": round(float(np.mean(cool)))},
+               "five_slowest_years_excluding_2007": [{"year": p["year"], "noon_temp": p["noon_temp"]} for p in slowest],
+               "note": "Correlation, not proof. Temperature is one noon reading at one station; 2007 (halted race) is plotted but left out of the fit."}
+
+    # --- round-number edges: 5 minutes before vs after a landmark time
+    def ratio(y, t):
+        s = df[df.year == y].secs
+        return float(((s >= t - 300) & (s < t)).sum()) / max(1, int(((s >= t) & (s < t + 300)).sum()))
+    ratios = {str(h): {y: round(ratio(y, h * 3600), 3) for y in held} for h in (4, 5)}
+    s_all = df.secs
+    start_min = 225  # 3:45
+    pooled = [int(((s_all >= m * 60) & (s_all < (m + 1) * 60)).sum()) for m in range(start_min, start_min + 31)]
+    c359, c400 = pooled[239 - start_min], pooled[240 - start_min]
+    round_numbers = {"before_after_ratio": ratios, "pooled_start_minute": start_min, "pooled_counts_per_minute": pooled,
+                     "minute_3_59": c359, "minute_4_00": c400, "drop_share": round(1 - c400 / c359, 3),
+                     "note": "Ratio = finishers in the 5 minutes before the landmark / finishers in the 5 minutes after."}
+
+    # --- age: mix over time, and typical time with the 1996 age mix held fixed (ignores gender)
+    ag = {"u30": ["u30"], "30-39": ["30-39"], "40-49": ["40-49"], "50+": ["50-59", "60-69", "70+"]}
+    mix = [{"year": y, **{k: round(float(df[(df.year == y)].age_group.isin(v).mean()), 4) for k, v in ag.items()}} for y in held]
+    w96 = df[df.year == 1996].age_group.value_counts(normalize=True)
+    std = []
+    for y in held:
+        d = df[df.year == y]
+        vals = [d[d.age_group == k].secs.to_numpy() for k in w96.index]
+        wts = [np.full(len(v), w96[k] / len(v)) for k, v in zip(w96.index, vals)]
+        std.append({"year": y, "typical_actual": float(d.secs.median()), "typical_1996_age_mix": round(weighted_median(np.concatenate(vals), np.concatenate(wts)))})
+    periods = {"1996-2006": range(1996, 2007), "2008-2018": range(2008, 2019), "2019-2023": [2019, 2021, 2022, 2023]}
+    by_age = {k: {pn: round(float(np.mean([df[(df.year == y) & (df.age_group == k)].secs.median() for y in yy]))) for pn, yy in periods.items()}
+              for k in ["u30", "30-39", "40-49", "50-59", "60-69"]}
+    age = {"mix": mix, "standardized": std, "typical_by_age_group_by_period": by_age,
+           "note": "Ages in the source are 5-year bands. 50+ = 50-59, 60-69 and 70 and over."}
+    # --- the dataset in a few numbers (for the intro)
+    sizes = df.groupby("year").size()
+    fastest = df.loc[df.secs.idxmin()]
+    dataset = {"finishers": int(len(df)), "races": len(held), "first_year": int(min(held)), "last_year": int(max(held)),
+               "no_race_year": NO_RACE_YEAR, "fastest_seconds": int(fastest.secs), "fastest_year": int(fastest.year),
+               "largest_year": int(sizes.idxmax()), "largest_finishers": int(sizes.max()),
+               "note": "finishers = rows after removing 5 exact duplicates; names are never used or published"}
+    return {"dataset": dataset, "spread": spread, "weather": weather, "round_numbers": round_numbers, "age": age}
 
 
 if __name__ == "__main__":
