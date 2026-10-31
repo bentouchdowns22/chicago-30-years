@@ -48,7 +48,7 @@ a:hover { text-decoration: underline; }
 /* ---- header ---- */
 .top { margin: 0 0 28px; }
 .eyebrow { margin: 0 0 8px; font-size: 17px; font-weight: 600; color: var(--accent-ink); }
-h1 { margin: 0; max-width: 13em; font: 700 clamp(36px, 8vw, 64px)/1.05 var(--display); letter-spacing: -0.035em; }
+h1 { margin: 0; font: 700 clamp(32px, 5.4vw, 50px)/1.08 var(--display); letter-spacing: -0.035em; }
 
 /* ---- cards ---- */
 .card { background: var(--surface); border-radius: 22px; padding: 24px; margin-top: 20px; box-shadow: var(--shadow); }

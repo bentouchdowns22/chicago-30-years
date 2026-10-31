@@ -148,7 +148,7 @@ def _():
     assert round(min(mid)) == 263 and round(max(mid)) == 284  # 4:23 to 4:44
 
 
-@check("headline claims hold: typical time moved under 6 minutes while the middle half widened by over 40%")
+@check("the page's main finding holds: typical time moved under 6 minutes while the middle half widened by over 40%")
 def _():
     q = {r["year"]: r for r in load("quantiles.json")["rows"] if r["age_group"] == "all" and r["gender"] == "all"}
     assert abs(q[2023]["p50"] - q[1996]["p50"]) < 6 * 60
