@@ -45,7 +45,9 @@ def main():
             yrs.append({"year": y, "race_held": False, "finishers": None, "men": None, "women": None,
                         "beyond_cap": None, "weather": None, "date": None,
                         "show_in_count_charts": False,
-                        "note": "No race held in 2020; there are no results and no weather row in the data."})
+                        "note": "No race was held in 2020, so there is nothing to show for this year.",
+                        "short_note": "2020: no race",
+                        "detail_note": "No race held in 2020; there are no results and no weather row in the data."})
             continue
         d = df[df.year == y]
         w = wx.loc[y]
@@ -65,14 +67,20 @@ def main():
         }
         if y == PARTIAL_YEAR:
             entry["partial_data"] = True
-            entry["note"] = ("Partial data: about 8% of finishers are missing (finisher place numbers run past "
-                             "the number of rows). Fine for distribution charts, excluded from finisher-count charts.")
+            entry["note"] = ("Some results are missing: about 8% of finishers (roughly 1 in 12) are not in the data, "
+                             "so this year's hill covers most, but not all, of the runners.")
+            entry["short_note"] = "2022: about 8% of results are missing."
+            entry["detail_note"] = ("Partial data: finisher place numbers run past the number of rows (about 3,100 gaps). "
+                                    "The year stays in the distribution chart and is excluded from any chart of finisher counts.")
         if y == NOT_COMPARABLE_YEAR:
             entry["not_comparable"] = True
-            entry["note"] = ("The race was halted mid-course because of record heat; reported highs were in the "
-                             "upper 80s F. Times are not directly comparable to other years. The chart's weather "
-                             "value comes from the same source as every other year (84 F at noon in that file, a "
-                             "single reading).")
+            entry["note"] = ("Record heat stopped this race partway through (reported highs were in the upper 80s F), "
+                             "so these times can't be fairly compared with other years. The temperature shown here is "
+                             "one reading at noon, so it can be lower than the day's reported high.")
+            entry["short_note"] = "2007: record heat stopped the race partway. Times can't be fairly compared."
+            entry["detail_note"] = ("The race was halted mid-course because of record heat; reported highs were in the upper "
+                                    "80s F. The chart's weather value comes from the same source as every other year "
+                                    "(84 F at noon in that file, a single reading), so it can differ from the reported high.")
             entry["sources"] = [
                 "https://www.npr.org/2007/10/08/15091688/heat-mars-weekend-marathons-two-die",
                 "https://www.wbez.org/2007/10/07/heat-shuts-down-chicago-marathon-1-man-dead-nearly-200-hospitalized",
