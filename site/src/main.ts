@@ -23,16 +23,13 @@ async function main() {
   const share = (year: number) => data.womenShare(yr(year))!;
   const sp = new Map(analysis.spread.map((r) => [r.year, r]));
   const mins = (s: number) => Math.round(s / 60);
-  $("head-a").textContent = `The typical Chicago Marathon finisher took about ${fmtHMRound(t96)} in 1996 and ${fmtHMRound(t23)} in 2023.`;
-  $("head-b").textContent = `But the field spread out: the middle half of runners went from spanning ${mins(sp.get(1996)!.middle_half)} minutes to ${mins(sp.get(2023)!.middle_half)}.`;
-
   // ---------- intro: the dataset in a few numbers ----------
   const ds = analysis.dataset;
   const stats: [string, string][] = [
     ["Finishers in the data", num(ds.finishers)],
-    ["Races", `${ds.races}, ${ds.first_year}–${ds.last_year}`],
-    ["Fastest finish", `${fmtClock(ds.fastest_seconds)} (${ds.fastest_year})`],
-    ["Largest field", `${num(ds.largest_finishers)} (${ds.largest_year})`],
+    [`Races, ${ds.first_year}\u2013${ds.last_year}`, String(ds.races)],
+    [`Fastest finish, ${ds.fastest_year}`, fmtClock(ds.fastest_seconds)],
+    [`Largest field, ${ds.largest_year}`, num(ds.largest_finishers)],
   ];
   const statsEl = $<HTMLElement>("stats");
   for (const [k, v] of stats) {
@@ -122,7 +119,7 @@ async function main() {
     noRace = text(hero, "no race", { x: hW / 2, y: hBase - hHill / 2, "text-anchor": "middle", "font-size": phone ? 22 : 28, "font-style": "italic", opacity: 0 }, { ink: true });
 
     yearText = el("text", { x: 12, y: fs * 0.88, "font-size": fs, "font-weight": 700 }, hero);
-    yearText.style.fontFamily = "var(--serif)"; yearText.style.fill = "var(--ink)";
+    yearText.style.fontFamily = "var(--display)"; yearText.style.letterSpacing = "-0.03em"; yearText.style.fill = "var(--ink)";
     subText = text(hero, "", { x: 14, y: fs + 22, "font-size": 14 });
     statusG = el("g", {}, hero);
     heroLabels();
@@ -208,7 +205,7 @@ async function main() {
       [1996, pct(share(1996)), "below", "start"],
       [2007, `2007: ${pct(share(2007), 1)}`, "below", "middle"],
       [peakWomen.year, `${peakWomen.year}: ${pct(share(peakWomen.year), 1)}`, "above", "middle"],
-      [2023, pct(share(2023)), "above", "end"],
+      [2023, pct(share(2023)), "below", "end"],
     ];
     for (const [yv, lab, pos, anchor] of labelled) {
       const cx = wX(yv), cy = wY(share(yv));
@@ -315,6 +312,7 @@ async function main() {
     sel = Math.max(0, Math.min(nRows - 1, i));
     const y = years[sel];
     slider.value = String(sel); out.textContent = String(y.year);
+    slider.style.setProperty("--pct", `${(sel / (nRows - 1)) * 100}%`);
     slider.setAttribute("aria-valuetext", y.race_held ? String(y.year) : `${y.year}, no race`);
     statusEl.textContent = y.race_held
       ? `${y.year}: typical finish time ${fmtClock(data.typical(y.year)!)}, ${num(y.finishers!)} finishers.${y.note && y.short_note ? " " + y.note : ""}`

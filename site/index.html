@@ -2,75 +2,65 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="light dark" />
   <title>Thirty Years of Chicago</title>
-  <meta name="description" content="The typical Chicago Marathon finish time barely changed between 1996 and 2023, but women went from 31% of finishers to 47%." />
+  <meta name="description" content="Chicago Marathon finish times, 1996 to 2023: the typical finish time barely changed, but the field spread out." />
   <link rel="stylesheet" href="/src/style.css" />
 </head>
 <body>
   <main>
-    <header>
-      <p class="kicker">Thirty Years of Chicago &middot; Chicago Marathon results, 1996&ndash;2023</p>
-      <h1>
-        <span id="head-a">The typical Chicago Marathon finisher took about 4:07 in 1996 and 4:12 in 2023.</span>
-        <span id="head-b" class="head-b">But the field spread out: the middle half of runners went from spanning 55 minutes to 83.</span>
-      </h1>
+    <header class="top">
+      <p class="eyebrow">Chicago Marathon &middot; 1996&ndash;2023</p>
+      <h1>The typical finish time barely changed. The field spread out.</h1>
     </header>
 
-    <section class="intro" aria-labelledby="intro-h">
+    <section class="card intro" aria-labelledby="intro-h">
       <h2 id="intro-h">About the data</h2>
-      <div class="intro-grid">
-        <div>
-          <p id="intro-text" class="lede">Every runner who finished the Chicago Marathon from 1996 to 2023, from chicagomarathon.com, gathered into a free Kaggle collection by runningwithrock. Each result has the year, the finish time, an age group and gender. We also use the race-day weather. Names are never used.</p>
-          <dl class="stats" id="stats"></dl>
-        </div>
-        <div>
-          <h3>Finishers per year</h3>
-          <div id="field-wrap" class="chart-wrap"><svg id="field" role="img" aria-label="Number of finishers each year"></svg></div>
-          <p class="caption">1996 and 2022 are left out because some of their results are missing. There was no race in 2020.</p>
-        </div>
-      </div>
+      <p class="lede">Every runner who finished the Chicago Marathon from 1996 to 2023, from chicagomarathon.com, collected on Kaggle by runningwithrock. Each result has a year, a finish time, an age group and a gender. Names are never used.</p>
+      <dl class="stats" id="stats"></dl>
+      <h3 class="mini">Finishers per year</h3>
+      <div id="field-wrap" class="chart-wrap"><svg id="field" role="img" aria-label="Number of finishers each year"></svg></div>
+      <p class="caption">1996 and 2022 are left out because some of their results are missing. There was no race in 2020.</p>
     </section>
 
-    <section class="hero" aria-label="Finish times, one year at a time">
-      <div class="controls">
-        <button id="play" type="button" class="btn" aria-label="Play through the years">&#9654; Play</button>
-        <div class="slider">
-          <label for="year">Year</label>
-          <input id="year" type="range" min="0" max="27" step="1" value="27" />
-          <output id="year-out" for="year" class="sr-only">2023</output>
-        </div>
-      </div>
+    <div class="bar" role="group" aria-label="Choose a year">
+      <button id="play" type="button" class="btn" aria-label="Play through the years">&#9654; Play</button>
+      <input id="year" type="range" min="0" max="27" step="1" value="27" aria-label="Year" />
+      <output id="year-out" for="year" class="year-out">2023</output>
+    </div>
+
+    <section class="card hero" aria-label="Finish times, one year at a time">
       <div id="hero-wrap" class="chart-wrap"><svg id="hero" role="img" aria-labelledby="hero-title"></svg></div>
       <p class="caption">Right = slower finish; taller = more runners finishing then. The faint hill is 1996. The chart stops at 7:00.</p>
       <p id="status" class="sr-only" aria-live="polite"></p>
     </section>
 
-    <section class="block" aria-labelledby="band-h">
+    <section class="card block" aria-labelledby="band-h">
       <h2 id="band-h">The middle held; the edges moved</h2>
       <div id="band-wrap" class="chart-wrap"><svg id="band" role="img" aria-label="How long finishing took each year: the fastest 5%, the middle half and the slowest 5% of runners"></svg></div>
       <p id="band-caption" class="caption wide"></p>
     </section>
 
-    <section class="block" aria-labelledby="wx-h">
+    <section class="card block" aria-labelledby="wx-h">
       <h2 id="wx-h">Warmer days, slower field</h2>
       <div id="wx-wrap" class="chart-wrap"><svg id="wx" role="img" aria-label="Noon temperature on race day against the typical finish time, one point per year"></svg></div>
       <p id="wx-caption" class="caption wide"></p>
     </section>
 
-    <section class="block" aria-labelledby="edge-h">
+    <section class="card block" aria-labelledby="edge-h">
       <h2 id="edge-h">A sharp edge at 4:00</h2>
       <div id="edge-wrap" class="chart-wrap"><svg id="edge" role="img" aria-label="Finishers per minute around 4:00, all years combined"></svg></div>
       <p id="edge-caption" class="caption wide"></p>
     </section>
 
-    <section class="block" aria-labelledby="age-h">
+    <section class="card block" aria-labelledby="age-h">
       <h2 id="age-h">An older field</h2>
       <div id="age-wrap" class="chart-wrap"><svg id="age" role="img" aria-label="Share of finishers in each age group, 1996 to 2023"></svg></div>
       <p id="age-caption" class="caption wide"></p>
     </section>
 
-    <section class="block" aria-labelledby="y07-h">
+    <section class="card block" aria-labelledby="y07-h">
       <h2 id="y07-h">2007: a race stopped by heat</h2>
       <div class="pair">
         <div><h3>Finishers</h3><div id="b-count-wrap" class="chart-wrap"><svg id="b-count" role="img" aria-label="Finishers each year, 2005 to 2009"></svg></div></div>
@@ -79,19 +69,19 @@
       <p id="y07-caption" class="caption wide"></p>
     </section>
 
-    <section class="block side" aria-labelledby="women-h">
+    <section class="card block side" aria-labelledby="women-h">
       <h2 id="women-h">One more change: women&rsquo;s share of finishers</h2>
       <div id="women-wrap" class="chart-wrap"><svg id="women" role="img" aria-label="Share of finishers who were women, each year from 1996 to 2023"></svg></div>
       <p class="caption">Share of finishers (not entrants) who were women. Hollow dots: 1996 and 2022 are missing some results.</p>
     </section>
 
-    <details id="stack-box" class="more">
+    <details id="stack-box" class="card more">
       <summary>See every year at once</summary>
       <p class="caption">One small hill per year, oldest at the top. The dotted line follows the typical runner. The year you picked is blue.</p>
       <div id="stacked" class="chart-wrap"></div>
     </details>
 
-    <details class="more">
+    <details class="card more">
       <summary>More details</summary>
       <div class="more-body">
         <h2>In words</h2>
