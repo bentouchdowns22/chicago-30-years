@@ -7,6 +7,7 @@
   --grid: #e6e5e1;
   --card: #f3f2ee;
   --bar: #c9c8c3;
+  --orange: #eb6834;
   --accent: #2a78d6;
   --accent-ink: #184f95;
   --serif: Georgia, "Times New Roman", serif;
@@ -16,13 +17,13 @@
   :root:not([data-theme="light"]) {
     color-scheme: dark;
     --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --ink-3: #a09f95;
-    --grid: #333330; --card: #242422; --bar: #4a4a46; --accent: #3987e5; --accent-ink: #86b6ef;
+    --grid: #333330; --card: #242422; --bar: #4a4a46; --orange: #d95926; --accent: #3987e5; --accent-ink: #86b6ef;
   }
 }
 :root[data-theme="dark"] {
   color-scheme: dark;
   --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --ink-3: #a09f95;
-  --grid: #333330; --card: #242422; --bar: #4a4a46; --accent: #3987e5; --accent-ink: #86b6ef;
+  --grid: #333330; --card: #242422; --bar: #4a4a46; --orange: #d95926; --accent: #3987e5; --accent-ink: #86b6ef;
 }
 
 * { box-sizing: border-box; }
@@ -69,3 +70,17 @@ thead th { position: sticky; top: 0; background: var(--card); white-space: norma
 footer { margin-top: 28px; padding-top: 12px; border-top: 1px solid var(--grid); font-size: 13px; color: var(--ink-2); }
 footer p { margin: 0; }
 @media (max-width: 560px) { .pair { grid-template-columns: 1fr; gap: 4px; } .caption { font-size: 13px; } }
+
+.intro { margin: 0 0 28px; padding: 16px; background: var(--card); border-radius: 12px; }
+.intro h2 { font: 700 18px var(--serif); margin: 0 0 8px; }
+.intro h3 { font: 700 14px var(--sans); margin: 0 0 2px; color: var(--ink-2); }
+.intro-grid { display: grid; grid-template-columns: 1.1fr 1fr; gap: 20px 28px; align-items: start; }
+.lede { margin: 0 0 12px; font-size: 15.5px; }
+.stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; margin: 0; }
+.stats dt { font-size: 12px; color: var(--ink-2); }
+.stats dd { margin: 0 0 2px; font: 700 20px var(--serif); font-variant-numeric: tabular-nums; }
+.intro .caption { font-size: 12.5px; }
+.hero { margin-top: 8px; }
+.block.side { margin-top: 36px; opacity: 1; }
+.block.side h2 { font-size: 18px; color: var(--ink-2); }
+@media (max-width: 700px) { .intro-grid { grid-template-columns: 1fr; } }

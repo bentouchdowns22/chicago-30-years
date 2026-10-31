@@ -1,14 +1,14 @@
 import * as d3 from "d3";
-import { loadData, YearEntry, el, text, smooth, fmtClock, fmtHMRound, pct, num } from "./data";
+import { loadData, YearEntry, el, text, smooth, css, widthOf, noteBox, lineSegments, fmtClock, fmtHMRound, pct, num } from "./data";
 import { mountStacked } from "./stacked";
+import { buildAge, buildBand, buildEdge, buildFieldSize, buildWeather, Handle } from "./charts";
 
 const $ = <T extends HTMLElement | SVGElement>(id: string) => document.getElementById(id) as unknown as T;
 const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-const css = (name: string) => `var(--${name})`;
 
 async function main() {
   const data = await loadData();
-  const { years, T0, BIN, CAP, NB } = data;
+  const { years, T0, BIN, CAP, NB, analysis } = data;
   const nRows = years.length;
   const idx = (year: number) => years.findIndex((y) => y.year === year);
   const yr = (year: number) => years[idx(year)];
@@ -18,46 +18,63 @@ async function main() {
   let playing = false;
   let timer: number | undefined;
 
-  // ---------- the numbers the story rests on (all from the data files) ----------
+  // ---------- the numbers the page rests on (all from the data files) ----------
   const t96 = data.typical(1996)!, t23 = data.typical(2023)!;
   const share = (year: number) => data.womenShare(yr(year))!;
-  const midYears = years.filter((y) => y.year >= 2008 && y.year <= 2018 && y.race_held);
-  const midTimes = midYears.map((y) => data.typical(y.year)!);
-  const midLo = Math.min(...midTimes), midHi = Math.max(...midTimes);
-  const peakWomen = years.filter((y) => y.race_held).reduce((a, b) => (share(b.year) > share(a.year) ? b : a));
-  $("head-a").textContent = `The typical Chicago Marathon finish time barely changed between 1996 and 2023: about ${fmtHMRound(t96)}, then ${fmtHMRound(t23)}.`;
-  $("head-b").textContent = `But the field did: women went from ${pct(share(1996))} of finishers to ${pct(share(2023))}.`;
+  const sp = new Map(analysis.spread.map((r) => [r.year, r]));
+  const mins = (s: number) => Math.round(s / 60);
+  $("head-a").textContent = `The typical Chicago Marathon finisher took about ${fmtHMRound(t96)} in 1996 and ${fmtHMRound(t23)} in 2023.`;
+  $("head-b").textContent = `But the field spread out: the middle half of runners went from spanning ${mins(sp.get(1996)!.middle_half)} minutes to ${mins(sp.get(2023)!.middle_half)}.`;
 
-  // ---------- shared pieces ----------
+  // ---------- intro: the dataset in a few numbers ----------
+  const ds = analysis.dataset;
+  const stats: [string, string][] = [
+    ["Finishers in the data", num(ds.finishers)],
+    ["Races", `${ds.races}, ${ds.first_year}–${ds.last_year}`],
+    ["Fastest finish", `${fmtClock(ds.fastest_seconds)} (${ds.fastest_year})`],
+    ["Largest field", `${num(ds.largest_finishers)} (${ds.largest_year})`],
+  ];
+  const statsEl = $<HTMLElement>("stats");
+  for (const [k, v] of stats) {
+    const box = document.createElement("div");
+    const dt = document.createElement("dt"); dt.textContent = k;
+    const dd = document.createElement("dd"); dd.textContent = v;
+    box.append(dt, dd); statsEl.appendChild(box);
+  }
+
+  // ---------- captions for the analysis sections ----------
+  const w = analysis.weather, rn = analysis.round_numbers, ag = analysis.age;
+  const mid = years.filter((y) => y.year >= 2008 && y.year <= 2018 && y.race_held).map((y) => data.typical(y.year)!);
+  const ratios = (h: string) => Object.values(rn.before_after_ratio[h]);
+  const a = sp.get(1996)!, b = sp.get(2023)!;
+  $("band-caption").textContent =
+    `Each year, the top line is the time only 5% of runners took longer than, the bottom line is the time only 5% beat, and the thick line is the typical runner (half were faster, half slower). ` +
+    `The shaded band holds the middle half of runners. The typical time barely moved, but the band widened from ${mins(a.middle_half)} to ${mins(b.middle_half)} minutes: ` +
+    `the fastest 5% got faster (${fmtHMRound(a.p5)} to ${fmtHMRound(b.p5)}) and the slowest 5% slower (${fmtHMRound(a.p95)} to ${fmtHMRound(b.p95)}). ` +
+    `From 2008 to 2018 the typical time sat between ${fmtHMRound(Math.min(...mid))} and ${fmtHMRound(Math.max(...mid))}. 1996 and 2022 are missing some results, which barely changes their typical times.`;
+  const slow5 = w.five_slowest_years_excluding_2007.map((p) => p.year).sort((x, y) => x - y);
+  const list = (ys: number[]) => `${ys.slice(0, -1).join(", ")} and ${ys[ys.length - 1]}`;
+  $("wx-caption").textContent =
+    `Warm race days line up with slow years. The five slowest years after 2007 (${list(slow5)}) all had noon temperatures of ${Math.min(...w.five_slowest_years_excluding_2007.map((p) => p.noon_temp))}°F or higher. ` +
+    `Across ${w.n} years, each extra degree went with about ${Math.round(w.slope_seconds_per_degree)} seconds on the typical finish time (r = ${w.r.toFixed(2)}, so temperature lines up with about half of the year-to-year differences). ` +
+    `On the ${w.warm_days.n} days at or above 70°F the typical time averaged ${fmtHMRound(w.warm_days.average_typical)}; on the ${w.cool_days.n} days at or below 50°F it averaged ${fmtHMRound(w.cool_days.average_typical)}. ` +
+    `This is a pattern, not proof: it is one noon reading at one weather station, and other things differed between years too. 2007 is shown but left out of the line.`;
+  const r4 = ratios("4"), r5 = ratios("5");
+  $("edge-caption").textContent =
+    `Each bar is one minute on the clock, adding up every year from 1996 to 2023. In the minute just before 4:00:00, ${num(rn.minute_3_59)} runners finished; in the minute just after, ${num(rn.minute_4_00)} (${Math.round(rn.drop_share * 100)}% fewer). ` +
+    `In every year, more runners finished in the five minutes before 4:00 than in the five minutes after (${Math.min(...r4).toFixed(2)} to ${Math.max(...r4).toFixed(2)} times as many), and the same holds around 5:00 (${Math.min(...r5).toFixed(2)} to ${Math.max(...r5).toFixed(2)}). Finish times pile up just under round numbers.`;
+  const std23 = ag.standardized.find((r) => r.year === 2023)!;
+  const gaps = Object.values(ag.typical_by_age_group_by_period).map((v) => (v["2008-2018"] - v["1996-2006"]) / 60);
+  const mixOf = (year: number) => ag.mix.find((r) => r.year === year)!;
+  $("age-caption").textContent =
+    `Share of finishers in each age group. Finishers aged 50 or over grew from ${pct(mixOf(1996)["50+"])} to ${pct(mixOf(2023)["50+"])}, while those under 30 fell from ${pct(mixOf(1996).u30)} to ${pct(mixOf(2023).u30)}. ` +
+    `That shift moved the typical time very little: holding 1996's age mix fixed, 2023's typical time would be about ${fmtHMRound(std23.typical_1996_age_mix)} instead of ${fmtHMRound(std23.typical_actual)}. ` +
+    `Every age group's typical time was ${Math.round(Math.min(...gaps))} to ${Math.round(Math.max(...gaps))} minutes slower in 2008–2018 than in 1996–2006. Ages in the data are 5-year groups. Hollow dots: 1996 and 2022 are missing some results.`;
+
+  // ---------- hero: one big hill for the selected year, 1996 faint behind it ----------
   const slider = $<HTMLInputElement>("year"), out = $<HTMLOutputElement>("year-out"), playBtn = $<HTMLButtonElement>("play");
   const smoothed = years.map((y) => (data.density(y.year) ? smooth(data.density(y.year)!.share) : new Array<number>(NB).fill(0)));
   const gmax = Math.max(...smoothed.map((v) => Math.max(...v)));
-  const widthOf = (id: string) => Math.max(300, $<HTMLElement>(id).clientWidth);
-
-  /** Wrap text into a note box. Returns the box's group so callers can place it. */
-  function noteBox(parent: Element, str: string, maxW: number, fs: number) {
-    const g = el("g", {}, parent);
-    const rect = el("rect", { rx: 6, fill: css("surface"), "fill-opacity": 0.92, stroke: css("ink-3") }, g);
-    const t = el("text", { "font-size": fs }, g); t.style.fill = css("ink");
-    const probe = el("tspan", {}, t);
-    const lines: string[] = []; let ln = "";
-    for (const w of str.split(" ")) {
-      const test = ln ? `${ln} ${w}` : w; probe.textContent = test;
-      if (t.getComputedTextLength() > maxW && ln) { lines.push(ln); ln = w; } else ln = test;
-    }
-    lines.push(ln); t.replaceChildren();
-    const lh = fs * 1.3;
-    lines.forEach((s, j) => { el("tspan", { x: 0, dy: j ? lh : 0 }, t).textContent = s; });
-    const bb = (t as unknown as SVGGraphicsElement).getBBox();
-    const w = bb.width + 14, h = lines.length * lh + 8;
-    t.setAttribute("transform", `translate(7, ${fs + 3})`);
-    rect.setAttribute("width", String(w)); rect.setAttribute("height", String(h));
-    return { g, rect, w, h };
-  }
-
-  // =====================================================================================
-  // 1. HERO: one big hill for the selected year, 1996 faint behind it
-  // =====================================================================================
   const hero = $<SVGSVGElement>("hero");
   let hW = 0, hH = 0, hBase = 0, hHill = 0, hx: d3.ScaleLinear<number, number>;
   let vals = smoothed[sel].slice(), hMed = data.typical(years[sel].year) ?? t23, hOp = 1;
@@ -89,7 +106,6 @@ async function main() {
     text(g0, "Finish time, in hours:minutes  → slower", { x: hW / 2, y: hH - 8, "text-anchor": "middle", "font-size": 13 });
     el("line", { x1: 12, x2: hW - 12, y1: hBase, y2: hBase, stroke: css("ink-3") }, g0);
 
-    // the 1996 ghost
     const ghost = smoothed[FIRST];
     heroArea.y1((d) => hBase - d * k); heroLine.y((d) => hBase - d * k);
     el("path", { d: heroArea(ghost) ?? "", fill: css("ink"), "fill-opacity": 0.08 }, hero);
@@ -98,7 +114,6 @@ async function main() {
     gLine = el("line", { x1: gx, x2: gx, y1: topZone - 6, y2: hBase, stroke: css("ink-3"), "stroke-dasharray": "3 3" }, hero);
     gLabel = text(hero, `1996: ${fmtHMRound(t96)}`, { y: topZone - 10, "font-size": 12, "font-weight": 700 }, { ink: true, halo: true });
 
-    // the selected year
     selPath = el("path", { fill: css("accent"), "fill-opacity": 0.88 }, hero);
     selLine = el("path", { fill: "none", stroke: css("accent-ink"), "stroke-width": 2, "stroke-linejoin": "round" }, hero);
     medLine = el("line", { y1: topZone - 6, stroke: css("ink"), "stroke-width": 1.5 }, hero);
@@ -106,12 +121,10 @@ async function main() {
     medLabel = text(hero, "", { y: topZone - 10, "font-size": 13, "font-weight": 700 }, { ink: true, halo: true });
     noRace = text(hero, "no race", { x: hW / 2, y: hBase - hHill / 2, "text-anchor": "middle", "font-size": phone ? 22 : 28, "font-style": "italic", opacity: 0 }, { ink: true });
 
-    // year and finisher count, large, on the chart
     yearText = el("text", { x: 12, y: fs * 0.88, "font-size": fs, "font-weight": 700 }, hero);
     yearText.style.fontFamily = "var(--serif)"; yearText.style.fill = "var(--ink)";
     subText = text(hero, "", { x: 14, y: fs + 22, "font-size": 14 });
     statusG = el("g", {}, hero);
-
     heroLabels();
     paintHero();
   }
@@ -119,15 +132,14 @@ async function main() {
   function heroLabels() {
     const y = years[sel], phone = hW < 560;
     yearText.textContent = String(y.year);
-    subText.textContent = y.race_held ? `${num(y.finishers!)} finishers` : "";
+    subText.textContent = y.race_held ? `${num(y.finishers!)} finishers${y.partial_data ? " in the data" : ""}` : "";
     medLabel.textContent = y.race_held && sel !== FIRST ? `Typical in ${y.year}: ${fmtHMRound(data.typical(y.year)!)}` : y.race_held ? `Typical: ${fmtHMRound(t96)}` : "";
     gLabel.setAttribute("opacity", sel === FIRST || !y.race_held ? "0" : "1");
     gLine.setAttribute("opacity", sel === FIRST ? "0" : "1");
-    // short note on the chart for special years
     statusG.replaceChildren();
     if (y.short_note && y.year !== 2020) {
-      const { g, w } = noteBox(statusG, y.short_note, Math.min(phone ? 150 : 230, hW * 0.4), phone ? 11 : 12);
-      g.setAttribute("transform", `translate(${hW - 12 - w}, ${phone ? 6 : 10})`);
+      const { g, w: bw } = noteBox(statusG, y.short_note, Math.min(phone ? 150 : 230, hW * 0.4), phone ? 11 : 12);
+      g.setAttribute("transform", `translate(${hW - 12 - bw}, ${phone ? 6 : 10})`);
     }
     noRace.textContent = y.race_held ? "" : `${y.year}: no race`;
     noRace.setAttribute("opacity", y.race_held ? "0" : "1");
@@ -142,7 +154,6 @@ async function main() {
     medLine.setAttribute("x1", String(mx)); medLine.setAttribute("x2", String(mx)); medLine.setAttribute("y2", String(hBase));
     medDot.setAttribute("cx", String(mx));
     for (const n of [medLine, medDot, medLabel]) n.setAttribute("opacity", String(hOp));
-    // labels sit on opposite sides of the two nearby lines so they never collide
     const gx = hx(Math.min(t96, CAP));
     const right = mx >= gx - 1;
     medLabel.setAttribute("x", String(mx + (right ? 7 : -7))); medLabel.setAttribute("text-anchor", right ? "start" : "end");
@@ -171,71 +182,12 @@ async function main() {
     if (busy) requestAnimationFrame(frame); else animating = false;
   }
 
-  // =====================================================================================
-  // helpers for the two year-by-year line charts
-  // =====================================================================================
-  function nearestYearIndex(svgEl: SVGSVGElement, W: number, x: d3.ScaleLinear<number, number>, e: MouseEvent) {
-    const r = svgEl.getBoundingClientRect();
-    const v = Math.round(x.invert((e.clientX - r.left) * (W / r.width)));
-    return Math.max(0, Math.min(nRows - 1, idx(Math.max(1996, Math.min(2023, v)))));
-  }
-  const lineSegments = (pts: ({ x: number; y: number } | null)[]) => {
-    const segs: string[] = []; let cur: [number, number][] = [];
-    for (const p of pts) { if (!p) { if (cur.length) segs.push(d3.line()(cur) ?? ""); cur = []; } else cur.push([p.x, p.y]); }
-    if (cur.length) segs.push(d3.line()(cur) ?? "");
-    return segs.join("");
-  };
-
-  // =====================================================================================
-  // 1b. Typical finish time by year (under the hero)
-  // =====================================================================================
-  const trend = $<SVGSVGElement>("trend");
-  let trendSel: SVGCircleElement, trendX: d3.ScaleLinear<number, number>, trendY: d3.ScaleLinear<number, number>, trendW = 0;
-  function buildTrend() {
-    const W = trendW = widthOf("trend-wrap"), phone = W < 560, H = phone ? 190 : 210;
-    const ml = 40, mr = 14, mt = 14, mb = 28;
-    trendX = d3.scaleLinear().domain([1996, 2023]).range([ml, W - mr]);
-    trendY = d3.scaleLinear().domain([3 * 3600 + 50 * 60, 5 * 3600 + 8 * 60]).range([H - mb, mt]);
-    trend.setAttribute("viewBox", `0 0 ${W} ${H}`); trend.setAttribute("width", String(W)); trend.setAttribute("height", String(H));
-    trend.replaceChildren();
-    el("rect", { x: trendX(2007.5), y: mt, width: trendX(2018.5) - trendX(2007.5), height: H - mb - mt, fill: css("card") }, trend);
-    for (const t of [4, 4.5, 5]) {
-      const yy = trendY(t * 3600);
-      el("line", { x1: ml, x2: W - mr, y1: yy, y2: yy, stroke: css("grid") }, trend);
-      text(trend, `${Math.floor(t)}:${t % 1 ? "30" : "00"}`, { x: ml - 6, y: yy + 4, "text-anchor": "end", "font-size": 12 });
-    }
-    for (const yv of (phone ? [1996, 2005, 2015, 2023] : [1996, 2000, 2005, 2010, 2015, 2020, 2023])) text(trend, String(yv), { x: trendX(yv), y: H - 8, "text-anchor": yv === 1996 ? "start" : yv === 2023 ? "end" : "middle", "font-size": 12 });
-    const pts = years.map((y) => (y.race_held ? { x: trendX(y.year), y: trendY(data.typical(y.year)!) } : null));
-    el("path", { d: lineSegments(pts), fill: "none", stroke: css("ink"), "stroke-width": 1.75, "stroke-linejoin": "round" }, trend);
-    years.forEach((y) => { if (y.race_held) el("circle", { cx: trendX(y.year), cy: trendY(data.typical(y.year)!), r: 2.6, fill: css("ink") }, trend); });
-    // labels say what the data shows, not why
-    const bandMid = (trendX(2007.5) + trendX(2018.5)) / 2;
-    const nb = noteBox(trend, `Slower in the middle years: ${fmtHMRound(midLo)} to ${fmtHMRound(midHi)} from 2008 to 2018`, Math.max(110, trendX(2018.5) - trendX(2007.5) - 24), phone ? 11 : 12);
-    nb.rect.setAttribute("fill-opacity", "0"); nb.rect.setAttribute("stroke", "none");
-    nb.g.setAttribute("transform", `translate(${bandMid - nb.w / 2}, ${H - mb - nb.h - 8})`);
-    const y07 = data.typical(2007)!;
-    const l07 = text(trend, `2007: ${fmtHMRound(y07)}, halted by heat`, { x: trendX(2007) - 8, y: trendY(y07) + 4, "text-anchor": "end", "font-size": 12 }, { ink: true, halo: true });
-    if (trendX(2007) - 8 - l07.getComputedTextLength() < ml) { l07.setAttribute("x", String(trendX(2007) + 9)); l07.setAttribute("text-anchor", "start"); }
-    text(trend, fmtHMRound(t96), { x: trendX(1996) + 2, y: trendY(t96) - 9, "text-anchor": "start", "font-size": 13, "font-weight": 700 }, { ink: true, halo: true });
-    text(trend, fmtHMRound(t23), { x: trendX(2023), y: trendY(t23) + 20, "text-anchor": "end", "font-size": 13, "font-weight": 700 }, { ink: true, halo: true });
-    trendSel = el("circle", { r: 6, fill: css("accent"), stroke: css("surface"), "stroke-width": 2 }, trend);
-    updateTrend();
-    trend.style.cursor = "pointer";
-  }
-  function updateTrend() {
-    const y = years[sel], m = data.typical(y.year);
-    trendSel.setAttribute("opacity", y.race_held && m !== null ? "1" : "0");
-    if (y.race_held && m !== null) { trendSel.setAttribute("cx", String(trendX(y.year))); trendSel.setAttribute("cy", String(trendY(m))); }
-  }
-  trend.addEventListener("click", (e) => { stopPlay(); select(nearestYearIndex(trend, trendW, trendX, e)); });
-
-  // =====================================================================================
-  // 2. Women's share of finishers
-  // =====================================================================================
+  // ---------- women's share (a smaller, secondary section) ----------
   const women = $<SVGSVGElement>("women");
   let womenSel: SVGCircleElement, wX: d3.ScaleLinear<number, number>, wY: d3.ScaleLinear<number, number>, wW = 0;
+  const peakWomen = years.filter((y) => y.race_held).reduce((p, q) => (share(q.year) > share(p.year) ? q : p));
   function buildWomen() {
-    const W = wW = widthOf("women-wrap"), phone = W < 560, H = phone ? 210 : 250;
+    const W = wW = widthOf("women-wrap"), phone = W < 560, H = phone ? 190 : 220;
     const ml = 44, mr = 16, mt = 16, mb = 28;
     wX = d3.scaleLinear().domain([1996, 2023]).range([ml, W - mr]);
     wY = d3.scaleLinear().domain([0.25, 0.55]).range([H - mb, mt]);
@@ -246,14 +198,12 @@ async function main() {
       text(women, pct(v), { x: ml - 6, y: wY(v) + 4, "text-anchor": "end", "font-size": 12 });
     }
     for (const yv of (phone ? [1996, 2005, 2015, 2023] : [1996, 2000, 2005, 2010, 2015, 2020, 2023])) text(women, String(yv), { x: wX(yv), y: H - 8, "text-anchor": yv === 1996 ? "start" : yv === 2023 ? "end" : "middle", "font-size": 12 });
-    const pts = years.map((y) => (y.race_held ? { x: wX(y.year), y: wY(share(y.year)) } : null));
-    el("path", { d: lineSegments(pts), fill: "none", stroke: css("accent-ink"), "stroke-width": 2, "stroke-linejoin": "round" }, women);
+    el("path", { d: lineSegments(years.map((y) => (y.race_held ? { x: wX(y.year), y: wY(share(y.year)) } : null))), fill: "none", stroke: css("accent-ink"), "stroke-width": 2, "stroke-linejoin": "round" }, women);
     years.forEach((y) => {
       if (!y.race_held) return;
       const hollow = !!y.partial_data;
       el("circle", { cx: wX(y.year), cy: wY(share(y.year)), r: 3, fill: hollow ? css("surface") : css("accent-ink"), stroke: css("accent-ink"), "stroke-width": hollow ? 1.5 : 0 }, women);
     });
-    // labeled dots, no explanation: both ends, the 2007 dip, the 2017 peak
     const labelled: [number, string, "above" | "below", "start" | "middle" | "end"][] = [
       [1996, pct(share(1996)), "below", "start"],
       [2007, `2007: ${pct(share(2007), 1)}`, "below", "middle"],
@@ -274,11 +224,13 @@ async function main() {
     womenSel.setAttribute("opacity", y.race_held ? "1" : "0");
     if (y.race_held) { womenSel.setAttribute("cx", String(wX(y.year))); womenSel.setAttribute("cy", String(wY(share(y.year)))); }
   }
-  women.addEventListener("click", (e) => { stopPlay(); select(nearestYearIndex(women, wW, wX, e)); });
+  women.addEventListener("click", (e) => {
+    const r = women.getBoundingClientRect();
+    const v = Math.max(1996, Math.min(2023, Math.round(wX.invert((e.clientX - r.left) * (wW / r.width)))));
+    stopPlay(); select(idx(v));
+  });
 
-  // =====================================================================================
-  // 3. 2007 and its neighbours: two measures, 2005-2009
-  // =====================================================================================
+  // ---------- 2007 and its neighbours: two measures, 2005-2009 ----------
   const NEIGH = [2005, 2006, 2007, 2008, 2009];
   function bars(svgId: string, wrapId: string, vOf: (y: YearEntry) => number, label: (v: number) => string) {
     const svg = $<SVGSVGElement>(svgId);
@@ -308,15 +260,13 @@ async function main() {
       `The typical finish time was ${fmtHMRound(data.typical(2007)!)}, compared with ${fmtHMRound(data.typical(2006)!)} in 2006 and ${fmtHMRound(data.typical(2008)!)} in 2008. ` +
       `Reports say record heat halted the race (`);
     (yr(2007).sources ?? []).forEach((u, k) => {
-      const a = document.createElement("a"); a.href = u; a.target = "_blank"; a.rel = "noopener"; a.textContent = new URL(u).hostname.replace(/^www\./, "");
-      cap.append(k ? ", " : "", a);
+      const link = document.createElement("a"); link.href = u; link.target = "_blank"; link.rel = "noopener"; link.textContent = new URL(u).hostname.replace(/^www\./, "");
+      cap.append(k ? ", " : "", link);
     });
     cap.append("). The data can’t show how many runners were stopped.");
   }
 
-  // =====================================================================================
-  // 4. The optional every-year view, and More details
-  // =====================================================================================
+  // ---------- every-year view and More details ----------
   const stackBox = $<HTMLDetailsElement>("stack-box");
   const stacked = mountStacked($("stacked"), data, sel);
   stackBox.addEventListener("toggle", () => { if (stackBox.open) stacked.render(); });
@@ -324,7 +274,7 @@ async function main() {
   function renderDetails() {
     const t = $<HTMLTableElement>("table"); t.replaceChildren();
     const head = t.createTHead().insertRow();
-    ["Year", "Runners who finished", "Women’s share of finishers", "Typical finish time", "A quarter had finished by", "Three quarters had finished by", "Finished after 7:00", "Temperature, 6 AM → noon (°F)"].forEach((c) => {
+    ["Year", "Runners who finished", "Typical finish time", "A quarter had finished by", "Three quarters had finished by", "Middle half spans (min)", "Finished after 7:00", "Women’s share of finishers", "Temperature, 6 AM → noon (°F)"].forEach((c) => {
       const th = document.createElement("th"); th.scope = "col"; th.textContent = c; head.appendChild(th);
     });
     const body = t.createTBody();
@@ -333,34 +283,33 @@ async function main() {
       const q = data.quant(y.year), d = data.density(y.year);
       const tag = y.not_comparable ? " (stopped by heat)" : y.partial_data ? " (some results missing)" : "";
       const cells = y.race_held && q && d
-        ? [`${y.year}${tag}`, num(y.finishers!), pct(share(y.year), 1), fmtClock(q.p50!), fmtClock(q.p25!), fmtClock(q.p75!), num(d.beyond_cap),
+        ? [`${y.year}${tag}`, num(y.finishers!), fmtClock(q.p50!), fmtClock(q.p25!), fmtClock(q.p75!), String(mins(sp.get(y.year)!.middle_half)), num(d.beyond_cap), pct(share(y.year), 1),
            y.weather ? `${Math.round(y.weather.temp_6am)} → ${Math.round(y.weather.temp_noon)}` : "—"]
-        : [`${y.year} (no race)`, "—", "—", "—", "—", "—", "—", "—"];
+        : [`${y.year} (no race)`, "—", "—", "—", "—", "—", "—", "—", "—"];
       cells.forEach((c) => { r.insertCell().textContent = c; });
     });
     const ul = $<HTMLElement>("special"); ul.replaceChildren();
     years.filter((y) => y.short_note).forEach((y) => {
       const li = document.createElement("li");
-      const b = document.createElement("strong"); b.textContent = `${y.year}. `;
-      li.append(b, `${y.detail_note ?? y.note ?? ""} `);
+      const b2 = document.createElement("strong"); b2.textContent = `${y.year}. `;
+      li.append(b2, `${y.detail_note ?? y.note ?? ""} `);
       y.sources?.forEach((u, k) => {
-        const a = document.createElement("a"); a.href = u; a.rel = "noopener"; a.target = "_blank"; a.textContent = new URL(u).hostname.replace(/^www\./, "");
-        li.append(k === 0 ? "Sources: " : ", ", a);
+        const link = document.createElement("a"); link.href = u; link.rel = "noopener"; link.target = "_blank"; link.textContent = new URL(u).hostname.replace(/^www\./, "");
+        li.append(k === 0 ? "Sources: " : ", ", link);
       });
       ul.appendChild(li);
     });
     $<HTMLElement>("past7").textContent = NEIGH.map((y) => `${y}: ${num(data.density(y)!.beyond_cap)}`).join("; ") + ".";
-    const slow = years.filter((y) => y.race_held).map((y) => ({ y, m: data.typical(y.year)! })).reduce((a, b) => (b.m > a.m ? b : a));
+    const slow = years.filter((y) => y.race_held).map((y) => ({ y, m: data.typical(y.year)! })).reduce((p, q) => (q.m > p.m ? q : p));
     $<HTMLElement>("summary").textContent =
       `The typical finish time (half finished faster, half slower) was ${fmtClock(t96)} in 1996 and ${fmtClock(t23)} in 2023. ` +
-      `From 2008 to 2018 it ran between ${fmtClock(midLo)} and ${fmtClock(midHi)}. The slowest year was ${slow.y.year} (${fmtClock(slow.m)}), the race stopped by heat. ` +
-      `Women were ${pct(share(1996), 1)} of finishers in 1996 and ${pct(share(2023), 1)} in 2023; the highest share was ${pct(share(peakWomen.year), 1)} in ${peakWomen.year}. ` +
-      `There was no race in 2020, and 2022 is missing about 8% of its results.`;
+      `The middle half of finishers spanned ${mins(a.middle_half)} minutes in 1996 and ${mins(b.middle_half)} in 2023. ` +
+      `The slowest year was ${slow.y.year} (${fmtClock(slow.m)}), the race stopped by heat. Warm race days lined up with slow years (r = ${w.r.toFixed(2)}). ` +
+      `Women were ${pct(share(1996), 1)} of finishers in 1996 and ${pct(share(2023), 1)} in 2023. There was no race in 2020, and 1996 and 2022 are missing some results.`;
   }
 
-  // =====================================================================================
-  // controls
-  // =====================================================================================
+  // ---------- controls ----------
+  const handles: Handle[] = [];
   const statusEl = $<HTMLElement>("status");
   function select(i: number) {
     sel = Math.max(0, Math.min(nRows - 1, i));
@@ -370,7 +319,7 @@ async function main() {
     statusEl.textContent = y.race_held
       ? `${y.year}: typical finish time ${fmtClock(data.typical(y.year)!)}, ${num(y.finishers!)} finishers.${y.note && y.short_note ? " " + y.note : ""}`
       : `${y.year}: no race.`;
-    heroLabels(); paintHero(); updateTrend(); updateWomen(); stacked.setSelected(sel); startAnim();
+    heroLabels(); paintHero(); updateWomen(); handles.forEach((h) => h.update(sel)); stacked.setSelected(sel); startAnim();
   }
   function stopPlay() { if (playing) setPlaying(false); }
   function setPlaying(on: boolean) {
@@ -386,24 +335,39 @@ async function main() {
   }
   playBtn.addEventListener("click", () => setPlaying(!playing));
   slider.addEventListener("input", () => { stopPlay(); select(Number(slider.value)); });
+  const pick = (i: number) => { stopPlay(); select(i); };
 
   // ---------- start ----------
-  // optional deep link for sharing/testing, e.g. #year=2007&theme=light
+  // optional deep link for sharing/testing, e.g. #year=2007&theme=light&open=stack,more
   const hash = new URLSearchParams(location.hash.slice(1));
   const hy = idx(Number(hash.get("year")));
   if (hy >= 0) sel = hy;
-  for (const k of (hash.get("open") ?? "").split(",")) { if (k === "stack") stackBox.open = true; if (k === "more") document.querySelectorAll<HTMLDetailsElement>("details.more").forEach((d) => { if (d.id !== "stack-box") d.open = true; }); }
+  for (const k of (hash.get("open") ?? "").split(",")) {
+    if (k === "stack") stackBox.open = true;
+    if (k === "more") document.querySelectorAll<HTMLDetailsElement>("details.more").forEach((d) => { if (d.id !== "stack-box") d.open = true; });
+  }
   const ht = hash.get("theme");
   if (ht === "light" || ht === "dark") document.documentElement.dataset.theme = ht;
   vals = smoothed[sel].slice(); hMed = data.typical(years[sel].year) ?? t23; hOp = years[sel].race_held ? 1 : 0;
 
-  function buildAll() { buildHero(); buildTrend(); buildWomen(); buildSeason(); if (stackBox.open) stacked.render(); }
+  function buildAll() {
+    buildHero(); buildWomen(); buildSeason();
+    handles.length = 0;
+    handles.push(
+      buildFieldSize(data, { svg: "field", wrap: "field-wrap" }, pick),
+      buildBand(data, { svg: "band", wrap: "band-wrap" }, pick),
+      buildWeather(data, { svg: "wx", wrap: "wx-wrap" }),
+      buildAge(data, { svg: "age", wrap: "age-wrap" }, pick),
+    );
+    buildEdge(data, { svg: "edge", wrap: "edge-wrap" });
+    if (stackBox.open) stacked.render();
+  }
   buildAll(); renderSeasonCaption(); renderDetails(); select(sel);
   let lastW = $<HTMLElement>("hero-wrap").clientWidth;
   new ResizeObserver(() => {
-    const w = $<HTMLElement>("hero-wrap").clientWidth;
-    if (Math.abs(w - lastW) < 2) return;
-    lastW = w; buildAll(); select(sel);
+    const wNow = $<HTMLElement>("hero-wrap").clientWidth;
+    if (Math.abs(wNow - lastW) < 2) return;
+    lastW = wNow; buildAll(); select(sel);
   }).observe($<HTMLElement>("hero-wrap"));
 }
 
