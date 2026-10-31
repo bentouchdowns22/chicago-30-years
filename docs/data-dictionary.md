@@ -132,3 +132,20 @@ Because ages are 5-year bands, the brief's example groups can be built exactly b
 3. **Finish times.** Keep every finisher in all statistics. Cap only the chart axis at about 7 hours, and report how many finishers fall beyond the cap (in the raw data, 6,868 of 886,546 finishers, 0.8%, took longer than 7 hours; the per-year split will be produced in Milestone 2).
 4. **2007.** Annotate as a race halted mid-course because of record heat (about 88 F); the owner will supply the source. **2007 times are not directly comparable to other years** (the race was cut short, so the finisher count and times reflect that). Note that the weather file's own 2007 noon reading is 84 F, which differs from the roughly 88 F cited, because it is a single-station Weather Spark value at fixed hours; do not present the two as the same measurement.
 5. **Ranking and cleaning.** Rank by finish time, never by `Overall`. Ignore `Country`. Drop the 5 exact duplicate rows during cleaning (and log them).
+
+### 2007 sources and temperature notes
+
+- Sources supplied by the project owner (I have not independently opened them):
+  - <https://www.npr.org/2007/10/08/15091688/heat-mars-weekend-marathons-two-die>
+  - <https://www.wbez.org/2007/10/07/heat-shuts-down-chicago-marathon-1-man-dead-nearly-200-hospitalized>
+- Charts use the weather file's values for every year, so all years come from one source. For 2007 that file gives 71.1 F at 6 AM, 75.0 F at 9 AM and 84.0 F at noon.
+- Annotation text says reported highs were in the upper 80s F. News reports differ from each other by a degree or so, and the file's 84 F is a single noon reading, not the day's high, so the two figures are not the same measurement.
+
+## Milestone 2 outputs
+
+- `scripts/clean.py` -> `data/processed/results_clean.parquet` (gitignored; no names, no country) and `site/public/data/cleaning_log.json`. Raw 886,546 rows -> 886,541 clean rows; the only removals are the 5 exact duplicates (2001, 2009, 2010, 2012, 2013).
+- `scripts/aggregate.py` -> `years.json`, `quantiles.json`, `density.json`, `demographics.json`, `qualifying.json` in `site/public/data/` (about 220 KB total).
+- `scripts/test_outputs.py` runs 14 sanity checks, including a scan that fails if any runner name appears in `data/processed/` or `site/public/data/`.
+- 2020 appears in `years.json` as `race_held: false`. The 2018-2024 qualifying label carries `assumed_mapping: true` and an assumption note inside `qualifying.json`.
+- Quantiles are left null for groups under 30 finishers (37 of 567 cells; all in the 70+ and, in the 1990s, women 60-69 groups).
+- Finishers beyond the 7-hour axis cap are kept in every statistic and counted in `beyond_cap` (6,868 in total; 0 in 1996, 3 in 2007, up to 959 in 2017).
