@@ -1,0 +1,134 @@
+# Data dictionary and audit (Milestone 1)
+
+Produced by `scripts/download_data.py` (download) and `scripts/audit_data.py` (statistics). Every number below comes from the raw files as downloaded; nothing has been cleaned yet.
+
+## Sources and licenses
+
+| Item | Source | License / terms |
+|---|---|---|
+| Kaggle packaging | [`runningwithrock/chicago-marathon-results`](https://www.kaggle.com/datasets/runningwithrock/chicago-marathon-results), "Chicago Marathon Results - 1996 to 2023", by runningwithrock. Last updated 2024-07-13. | **MIT** (as listed in the dataset's Kaggle metadata) |
+| Finisher results and qualifying times | chicagomarathon.com ([race results](https://www.chicagomarathon.com/runners/race-results/)), as scraped by the dataset author | No separate license stated. The MIT license covers the Kaggle packaging; the underlying results belong to the race organizer. |
+| Weather | [Weather Spark](https://weatherspark.com/), as collected by the dataset author | No separate license stated. |
+
+The author's original analysis: <https://runningwithrock.com/chicago-qualifying-times/>. Credit the author in the README and site footer.
+
+## Files
+
+Downloaded to `data/raw/` (gitignored). All three are UTF-8 with a byte-order mark; read them with `encoding="utf-8-sig"` or the first column name gets a hidden prefix character.
+
+| File | Rows | Size |
+|---|---|---|
+| `Chicago Marathon Results.csv` | 886,546 | 50.7 MB |
+| `Chicago Marathon Weather.csv` | 45 | 3.3 KB |
+| `Chicago Marathon Qualifying Times.csv` | 24 | 711 B |
+
+### Results (`Chicago Marathon Results.csv`)
+
+One row per finisher. Years covered: **1996-2019, 2021, 2022, 2023** (27 race years; no 2020 race). Rows are in random order, not sorted by year.
+
+| Column | Type | Missing | Meaning and notes |
+|---|---|---|---|
+| `Race` | text | 0 | Always `Chicago`. Useless; drop. |
+| `Year` | int | 0 | Race year. |
+| `Name` | text | 3 (0.0%) | Runner's name. Personal data; never publish or commit it. 3 blanks (1999, 2011, 2012). |
+| `Gender` | text | 0 | Only `M` (498,574) and `F` (387,972). No other values. |
+| `Age` | int | 0 | **Not an exact age.** Only 14 distinct values: 19, 24, 29, 34, 39, 44, 49, 54, 59, 64, 69, 74, 79, 80. It appears to be the upper edge of a 5-year age band (19 = 19 and under, 24 = 20-24, ... 79 = 75-79, 80 = 80+). That reading is my inference from the pattern, not documented by the dataset. |
+| `Country` | text | 0 | 3-letter country code (e.g. `USA`, `MEX`). **2,416 rows (0.3%) hold junk** such as `avi`, `Mar`, `Pau`: they look like fragments of names from scraping errors. Concentrated in 2008-2013 (about 2,360 of them). |
+| `Overall` | int | 0 | Overall place. **Unreliable in several years**, see anomalies. |
+| `Finish Time` | text `HH:MM:SS` | 0 | All 886,546 values parse. Range 2:00:35 to 11:25:07. Not stated whether this is gun time or chip time. |
+| `Finish` | int | 0 | Finish time in **seconds**. Matches `Finish Time` exactly in every row, so it is redundant. |
+
+Finishers only: there are no DNF, DNS or disqualified rows, so "non-finisher" cleaning from the brief is unnecessary.
+
+### Weather (`Chicago Marathon Weather.csv`)
+
+One row per race year, **1977-2023, 45 rows** (1987 and 2020 absent). No missing values. Units are not stated in the file; values look like **degrees Fahrenheit** and **miles per hour** (e.g. 37.4 in October, 84.0 on the hot 2007 day), which I have not confirmed with the source.
+
+| Column | Type | Meaning |
+|---|---|---|
+| `Year`, `Month`, `Day`, `Date` | int, text, int, text | Race date (e.g. `Oct 20, 1996`). |
+| `6AM Temp`, `9AM Temp`, `12PM Temp` | float | Temperature at 6 AM, 9 AM, noon. |
+| `6AM Dew`, `9AM Dew`, `12PM Dew` | float | Dew point at those times. |
+| `6AM Wind`, `9AM Wind`, `12PM Wind` | float | Wind speed at those times. |
+
+Every results year has a weather row. The 18 rows for 1977-1995 predate the results and will go unused. Weather comes from a single source and station.
+
+### Qualifying times (`Chicago Marathon Qualifying Times.csv`)
+
+24 rows: 12 age groups x 2 genders. Values are the **qualifying time in seconds** (e.g. 11700 = 3:15:00).
+
+| Column | Type | Notes |
+|---|---|---|
+| `Gender` | text | `M` / `F` |
+| `Chicago Age` | text | `Under 30`, `30-34`, ... `75-79`, `80 and Over` |
+| `2025 CQ` | int seconds | 2025 standard |
+| `2024 CQ` | int seconds | Labeled 2024 in the file. We call it the **2018-2024 standard** (assumption, see Decisions) |
+| `2014 CQ` | int seconds | 2014 standard (labeled this way on the site): one flat time for all ages (men 3:15:00, women 3:45:00) |
+
+No missing values.
+
+## Age groups available for analysis
+
+Because ages are 5-year bands, the brief's example groups can be built exactly by combining bands: 18-29 (bands 19, 24, 29), 30-39 (34, 39), 40-49 (44, 49), 50-59 (54, 59), 60-69 (64, 69), 70+ (74, 79, 80). The 19 band includes anyone 19 or younger, so "18-29" really means "29 and under". Finer groups than 5 years are impossible.
+
+## Finisher counts and quality checks by year
+
+| Year | Rows | Men | Women | Median finish (min) | Notes |
+|---|---|---|---|---|---|
+| 1996 | 8,194 | 5,626 | 2,568 | 246.6 | Highest `Overall` is 9,194, so about 1,000 ranks have no row |
+| 1997 | 14,386 | 9,590 | 4,796 | 246.5 | |
+| 1998 | 17,201 | 10,946 | 6,255 | 254.0 | |
+| 1999 | 24,625 | 15,287 | 9,338 | 251.5 | `Overall` broken |
+| 2000 | 27,911 | 16,823 | 11,088 | 257.7 | |
+| 2001 | 28,672 | 17,304 | 11,368 | 256.4 | `Overall` broken |
+| 2002 | 31,123 | 18,137 | 12,986 | 256.4 | |
+| 2003 | 32,362 | 18,690 | 13,672 | 262.5 | |
+| 2004 | 33,084 | 19,106 | 13,978 | 263.5 | |
+| 2005 | 32,868 | 18,602 | 14,266 | 262.8 | |
+| 2006 | 33,636 | 18,911 | 14,725 | 261.0 | `Overall` partly duplicated |
+| 2007 | 25,521 | 15,337 | 10,184 | **295.0** | Count drops about 24% and the median is the slowest in the file; weather row shows 71 F at 6 AM and 84 F at noon. See anomalies |
+| 2008 | 31,345 | 17,679 | 13,666 | 283.7 | `Overall` broken |
+| 2009 | 33,569 | 18,948 | 14,621 | 263.4 | `Overall` broken |
+| 2010 | 36,086 | 19,946 | 16,140 | 280.6 | `Overall` broken |
+| 2011 | 35,752 | 20,282 | 15,470 | 277.9 | `Overall` broken |
+| 2012 | 37,470 | 20,679 | 16,791 | 267.4 | `Overall` broken |
+| 2013 | 38,873 | 21,481 | 17,392 | 267.4 | `Overall` broken |
+| 2014 | 40,605 | 22,200 | 18,405 | 267.4 | |
+| 2015 | 37,442 | 20,187 | 17,255 | 270.8 | |
+| 2016 | 40,556 | 22,032 | 18,524 | 268.4 | |
+| 2017 | 44,348 | 22,823 | 21,525 | 282.7 | Longest-tail year: 5.7% of finishers over 6.5 h |
+| 2018 | 44,551 | 23,912 | 20,639 | 267.5 | |
+| 2019 | 45,866 | 24,572 | 21,294 | 262.1 | |
+| 2020 | none | none | none | none | No results and no weather row |
+| 2021 | 26,080 | 14,203 | 11,877 | 278.7 | Smaller field |
+| 2022 | 36,265 | 19,599 | 16,666 | 261.8 | **Incomplete**: highest `Overall` is 39,313, so about 3,100 ranks have no row |
+| 2023 | 48,155 | 25,672 | 22,483 | 251.7 | About 230 ranks missing; fastest time in the file (2:00:35) |
+
+## Anomalies
+
+1. **2022 looks incomplete (about 8% of finishers missing).** There are 36,265 rows, but place numbers run to 39,313, with about 3,100 gaps starting at place 697. Any 2022 count, share or quantile rests on a partial field. Cause unknown; likely a scraping gap.
+2. **`Overall` is not trustworthy.** In 1999, 2001 and 2008-2013 only about a third of the values are unique (e.g. 2009: 11,442 distinct values across 33,569 rows, up to 16 runners sharing one). In 1996, 1999, 2009, 2022 and 2023 there are also many gaps. **Do not use `Overall` for ranking or percentiles; rank by `Finish Time` instead.** (Of the years I spot-checked, `Finish Time` order matches `Overall` in 1999, 2001, 2008, 2009, 2022 and 2023, but not in 1996 or 2006.)
+3. **2007 stands out.** Finisher count falls to 25,521 (from 33,636 in 2006 and 32,868 in 2005, then 31,345 in 2008). The median is 295 min, 34 min slower than 2006 and 11 min slower than 2008, and the slowest time is 7.2 h (only 3 finishers took over 7 h, versus 100-300 in most other years). The weather row shows the warmest start in the file other than 2021. The data are consistent with a hot-weather race with an early cutoff, but the dataset itself does not say what happened, so any annotation must be sourced separately.
+4. **2020 absent**; **2021 is smaller** (26,080) than neighboring years. The data do not say why; I have not assumed.
+5. **5 exact duplicate rows** (same year, name, gender, age, time, place) in 2001, 2009, 2010, 2012, 2013. Negligible but should be removed.
+6. **3 rows with blank names** (1999, 2011, 2012). Harmless for aggregates.
+7. **Country junk** in 2,416 rows (see above). Not needed for the planned charts; do not use `Country` without cleaning.
+8. **Very long finish times.** 55 finishers exceed 9 hours, up to 11.4 h. The share finishing over 6.5 h climbs from about 1% around 2000 to 3-5% after 2008. These look real (slow walkers) rather than errors, but they stretch the right tail of the distribution plots, and the extreme ones need a documented cutoff decision.
+9. **Fastest times look plausible:** no finish is under 2:00:35 (a man, 2023); the fastest women's times in the two years I checked were 2:14:04 (2019) and 2:14:18 (2022).
+10. **Age is banded** (see above); exact-age analysis is impossible.
+
+## Mismatches with the brief
+
+- **Qualifying standards: the file has 2014, 2024 and 2025, not 2014, 2018, 2025.** The brief (and the dataset's own description) say 2014, 2018 and 2025. The columns are labeled `2025 CQ`, `2024 CQ`, `2014 CQ`. Either the 2018 column is mislabeled 2024 or there really was a 2024 standard. I cannot tell from the data. **Decision needed before annotating.**
+- The 2014 standard is a single flat time per gender, with no age grading; the 2024/2025 standards are age-graded.
+- The brief said "1996 to 2023" with weather for "each year"; true, but with 2020 missing there are 27 race years, not 28.
+- Age groups: see above; the brief's groups work but "18-29" really means "29 and under".
+- Brief requires the download script to use `~/.kaggle/kaggle.json`. The current Kaggle tool also accepts `~/.kaggle/access_token` or `kaggle auth login`; the script's error message mentions all of them.
+
+## Decisions (project owner, after the Milestone 1 audit)
+
+1. **Qualifying columns.** Labeled on the site as the "2014 standard", "2018-2024 standard (file column: 2024)" and "2025 standard". **The 2018-2024 mapping is an assumption** based on an outside source and is still to be confirmed; the file itself only says "2024".
+2. **2022.** Keep it in distribution charts with a visible marker: "partial data, about 8% of finishers missing". Exclude it from any chart that shows finisher counts.
+3. **Finish times.** Keep every finisher in all statistics. Cap only the chart axis at about 7 hours, and report how many finishers fall beyond the cap (in the raw data, 6,868 of 886,546 finishers, 0.8%, took longer than 7 hours; the per-year split will be produced in Milestone 2).
+4. **2007.** Annotate as a race halted mid-course because of record heat (about 88 F); the owner will supply the source. **2007 times are not directly comparable to other years** (the race was cut short, so the finisher count and times reflect that). Note that the weather file's own 2007 noon reading is 84 F, which differs from the roughly 88 F cited, because it is a single-station Weather Spark value at fixed hours; do not present the two as the same measurement.
+5. **Ranking and cleaning.** Rank by finish time, never by `Overall`. Ignore `Country`. Drop the 5 exact duplicate rows during cleaning (and log them).
