@@ -1,7 +1,7 @@
 import * as d3 from "d3";
 import { loadData, YearEntry, el, text, smooth, css, widthOf, noteBox, lineSegments, fmtClock, fmtHMRound, pct, num } from "./data";
 import { mountStacked } from "./stacked";
-import { buildAge, buildBand, buildEdge, buildFieldSize, buildRoundNumbers, buildWeather, Handle } from "./charts";
+import { buildAge, buildBand, buildEdge, buildFieldSize, buildWeather, Handle } from "./charts";
 
 const $ = <T extends HTMLElement | SVGElement>(id: string) => document.getElementById(id) as unknown as T;
 const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -74,12 +74,6 @@ async function main() {
     const dt = document.createElement("dt"); dt.textContent = small;
     box.append(dd, dt); factsEl.appendChild(box);
   }
-  const rr = (k: string) => Object.values(rn.before_after_ratio[k]);
-  const medOf = (v: number[]) => [...v].sort((p, q) => p - q)[Math.floor(v.length / 2)];
-  const cnt = (k: string) => rr(k).filter((q) => q > 1).length;
-  $("rn-caption").textContent =
-    `Each row compares the five minutes just before a round number with the five minutes just after it. The dot is the typical year and the bar runs from the lowest year to the highest. 1.0 means no edge; 1.5 means half again as many runners just before. ` +
-    `The edge is clear at 4:00 (more runners just before in all ${rr("4").length} years) and 5:00 (all ${rr("5").length}), weaker at 3:00 (${cnt("3")} of ${rr("3").length} years), and missing at 3:30 (the typical year is ${medOf(rr("3.5")).toFixed(2)}).`;
   const psych = $<HTMLElement>("edge-psych");
   const para = (cls: string, ...parts: (string | Node)[]) => { const p = document.createElement("p"); if (cls) p.className = cls; p.append(...parts); psych.appendChild(p); };
   const link = (href: string, label: string) => { const a = document.createElement("a"); a.href = href; a.target = "_blank"; a.rel = "noopener"; a.textContent = label; return a; };
@@ -387,7 +381,6 @@ async function main() {
       buildAge(data, { svg: "age", wrap: "age-wrap" }, pick),
     );
     buildEdge(data, { svg: "edge", wrap: "edge-wrap" });
-    buildRoundNumbers(data, { svg: "rn", wrap: "rn-wrap" });
     if (stackBox.open) stacked.render();
   }
   buildAll(); renderSeasonCaption(); renderDetails(); select(sel);
