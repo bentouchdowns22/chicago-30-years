@@ -30,7 +30,7 @@ One row per finisher. Years covered: **1996-2019, 2021, 2022, 2023** (27 race ye
 |---|---|---|---|
 | `Race` | text | 0 | Always `Chicago`. Useless; drop. |
 | `Year` | int | 0 | Race year. |
-| `Name` | text | 3 (0.0%) | Runner's name. Personal data; never publish or commit it. 3 blanks (1999, 2011, 2012). |
+| `Name` | text | 3 (0.0%) | Runner's name. The results are public, so names are published in exactly one place: `site/public/data/runners/` (for the random-finisher button). Nowhere else. 3 blanks (1999, 2011, 2012). |
 | `Gender` | text | 0 | Only `M` (498,574) and `F` (387,972). No other values. |
 | `Age` | int | 0 | **Not an exact age.** Only 14 distinct values: 19, 24, 29, 34, 39, 44, 49, 54, 59, 64, 69, 74, 79, 80. It appears to be the upper edge of a 5-year age band (19 = 19 and under, 24 = 20-24, ... 79 = 75-79, 80 = 80+). That reading is my inference from the pattern, not documented by the dataset. |
 | `Country` | text | 0 | 3-letter country code (e.g. `USA`, `MEX`). **2,416 rows (0.3%) hold junk** such as `avi`, `Mar`, `Pau`: they look like fragments of names from scraping errors. Concentrated in 2008-2013 (about 2,360 of them). |

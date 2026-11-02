@@ -358,6 +358,59 @@ async function main() {
   slider.addEventListener("input", () => { stopPlay(); select(Number(slider.value)); });
   const pick = (i: number) => { stopPlay(); select(i); };
 
+  // ---------- random finisher (easter egg): loads one year's file only when the button is pressed ----------
+  const randBtn = $<HTMLButtonElement>("rand-btn"), randOut = $<HTMLElement>("rand-out");
+  let runnerCounts: Record<string, number> | undefined;
+  const runnerYears = new Map<string, [string, string, number, string, number][]>();
+  const MILE = 26.21875;
+  const getRunners = async <T,>(file: string) => {
+    const res = await fetch(`${import.meta.env.BASE_URL}data/runners/${file}`);
+    if (!res.ok) throw new Error(`Could not load ${file} (${res.status})`);
+    return res.json() as Promise<T>;
+  };
+  const quip = (secs: number, year: number, rank: number, total: number) => {
+    const pctl = Math.round((1 - rank / total) * 100);
+    if (secs < 2.5 * 3600) return "Fast. Like, 'did you take a shuttle' fast.";
+    if (secs >= 4 * 3600 - 60 && secs < 4 * 3600) return "Under four hours by less than a minute. Heart rate: unknown.";
+    if (secs >= 4 * 3600 && secs < 4 * 3600 + 60) return "Missed 4:00 by under a minute. We feel this.";
+    if (year === 2007) return "Ran the infamous hot year, when the race was halted.";
+    if (secs > 6 * 3600) return "Took the scenic route and saw all of it. Respect.";
+    return `Beat about ${pctl}% of that year's field.`;
+  };
+  randBtn.addEventListener("click", async () => {
+    randBtn.disabled = true;
+    try {
+      runnerCounts ??= (await getRunners<{ counts: Record<string, number> }>("index.json")).counts;
+      const total = Object.values(runnerCounts).reduce((a, b) => a + b, 0);
+      let pickN = Math.floor(Math.random() * total), year = "";
+      for (const [y, n] of Object.entries(runnerCounts)) { if (pickN < n) { year = y; break; } pickN -= n; }
+      if (!runnerYears.has(year)) runnerYears.set(year, (await getRunners<{ rows: [string, string, number, string, number][] }>(`${year}.json`)).rows);
+      const rows = runnerYears.get(year)!;
+      const [name, g, band, country, secs] = rows[pickN];
+      const rank = rows.reduce((c, r) => c + (r[4] < secs ? 1 : 0), 0) + 1;
+      const age = band <= 19 ? "19 and under" : band >= 80 ? "80+" : `${band - 4}\u2013${band}`;
+      const pace = (s: number) => { const m = Math.floor(s / 60); return `${m}:${String(Math.round(s % 60)).padStart(2, "0")}`; };
+      randOut.replaceChildren();
+      const card = document.createElement("div"); card.className = "rand-card";
+      const add = (cls: string, t: string, parent: HTMLElement = card) => { const d = document.createElement("div"); d.className = cls; d.textContent = t; parent.appendChild(d); return d; };
+      add("rand-name", name);
+      add("rand-sub", `Chicago Marathon ${year}${country ? ` \u00b7 ${country}` : ""}`);
+      const grid = document.createElement("div"); grid.className = "rand-grid"; card.appendChild(grid);
+      for (const [v, k] of [
+        [fmtClock(secs), "finish time"],
+        [`${pace(secs / MILE)}/mi`, "pace"],
+        [`${pace(secs / (MILE * 1.609344))}/km`, "pace"],
+        [`${num(rank)} of ${num(rows.length)}`, "place by time"],
+        [`${g === "F" ? "Woman" : "Man"}, ${age}`, "gender, age"],
+      ]) { const c = document.createElement("div"); const b = document.createElement("b"); b.textContent = v; const sp = document.createElement("span"); sp.textContent = k; c.append(b, sp); grid.appendChild(c); }
+      add("rand-quip", quip(secs, Number(year), rank, rows.length));
+      randOut.appendChild(card);
+      randBtn.textContent = "\u{1F3B2} Pick another";
+    } catch (err) {
+      randOut.textContent = `Sorry, could not load a runner: ${err instanceof Error ? err.message : String(err)}`;
+    } finally { randBtn.disabled = false; }
+  });
+
   // ---------- start ----------
   // optional deep link for sharing/testing, e.g. #year=2007&theme=light&open=stack,more
   const hash = new URLSearchParams(location.hash.slice(1));

@@ -31,6 +31,8 @@ def analysis():
     return load("analysis.json")
 
 
+RUNNERS = SITE_DATA / "runners"  # names for the "random runner" button; written by export_runners.py
+
 df = pd.read_parquet(PROCESSED / "results_clean.parquet")
 years = load("years.json")["years"]
 held = [y for y in years if y["race_held"]]
@@ -220,9 +222,9 @@ def _():
     assert d["fastest_seconds"] == 7235 and d["fastest_year"] == 2023 and d["largest_year"] == 2023
 
 
-@check("total size of committed data files is under 5 MB")
+@check("total size of aggregate data files is under 5 MB (runners/ excluded)")
 def _():
-    total = sum(p.stat().st_size for p in SITE_DATA.rglob("*") if p.is_file())
+    total = sum(p.stat().st_size for p in SITE_DATA.rglob("*") if p.is_file() and RUNNERS not in p.parents)
     assert total < BUDGET_BYTES, f"{total:,} bytes"
 
 
@@ -251,14 +253,24 @@ def names_found(text, names):
     return hits
 
 
-@check("privacy: no runner name appears in data/processed/ or site/public/data/")
+@check("privacy: no runner name appears in data/processed/ or site/public/data/ (runners/ is the one deliberate exception)")
 def _():
     names = pd.read_csv(RAW / "Chicago Marathon Results.csv", encoding="utf-8-sig", usecols=["Name"])["Name"]
     names = names.dropna().astype(str).str.strip().unique()
-    paths = [p for d in (PROCESSED, SITE_DATA) for p in d.rglob("*") if p.is_file()]
+    paths = [p for d in (PROCESSED, SITE_DATA) for p in d.rglob("*") if p.is_file() and RUNNERS not in p.parents]
     assert paths, "no files found to scan"
     hits = names_found(corpus_text(paths), names)
     assert not hits, f"{len(hits)} runner names found, e.g. {hits[:3]}"
+
+
+@check("runners/: one file per race year, counts match the cleaned data, only the expected fields")
+def _():
+    idx = json.loads((RUNNERS / "index.json").read_text())["counts"]
+    assert set(idx) == {str(y["year"]) for y in held}
+    for yr, n in idx.items():
+        rows = json.loads((RUNNERS / f"{yr}.json").read_text())["rows"]
+        assert len(rows) == n <= (df.year == int(yr)).sum()
+        assert all(len(r) == 5 for r in rows)
 
 
 @check("privacy scan self-test: it does catch a planted name")

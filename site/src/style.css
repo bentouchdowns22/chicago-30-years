@@ -112,6 +112,15 @@ th, td { text-align: right; padding: 8px 12px; border-bottom: 0.5px solid var(--
 th:first-child, td:first-child { text-align: left; }
 thead th { position: sticky; top: 0; background: var(--card); white-space: normal; vertical-align: bottom; font-weight: 600; }
 
+.rand-out { margin-top: 16px; }
+.rand-out:empty { display: none; }
+.rand-card { background: var(--card); border-radius: 16px; padding: 18px 20px; }
+.rand-name { font: 700 26px/1.15 var(--display); letter-spacing: -0.02em; }
+.rand-sub { color: var(--ink-2); margin-top: 2px; }
+.rand-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; margin-top: 14px; }
+.rand-grid b { display: block; font: 700 22px var(--display); letter-spacing: -0.01em; }
+.rand-grid span { font-size: 13px; color: var(--ink-3); }
+.rand-quip { margin-top: 14px; color: var(--ink-2); font-style: italic; }
 footer { margin-top: 32px; font-size: 13px; color: var(--ink-3); text-align: center; }
 footer p { margin: 0; }
 
